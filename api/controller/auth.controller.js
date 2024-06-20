@@ -47,14 +47,16 @@ export const signUpUser = async (req, res) => {
 };
 
 export const signin = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
+  console.log("body", req.body);
+  const { userEmail, password } = req.body;
+  if (!userEmail || !password) {
     return res
       .status(400)
       .json({ message: "All fields are required", success: false });
   }
   try {
-    const validUser = await User.find({ email });
+    const validUser = await User.findOne({ userEmail });
+    console.log(validUser);
     if (!validUser) {
       return res
         .status(400)
@@ -70,7 +72,7 @@ export const signin = async (req, res) => {
     const token = jwt.sign(
       {
         id: validUser._id,
-        email: validUser.email,
+        userEmail: validUser.userEmail,
       },
       process.env.JWT_SECRET
     );
