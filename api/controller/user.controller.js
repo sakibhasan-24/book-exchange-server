@@ -2,11 +2,13 @@ import bcryptjs from "bcryptjs";
 import User from "../model/user.model.js";
 
 export const userUpdate = async (req, res) => {
+  //   console.log(req.user.id, req.params);
   if (req.user.id !== req.params.userId) {
     return res.status(403).json({
       error: "You can update only your account!",
     });
   }
+  console.log(req.body);
   if (req.body.password) {
     if (req.body.password.length < 6) {
       return res.status(400).json({
@@ -25,29 +27,30 @@ export const userUpdate = async (req, res) => {
           error: "Username can only contain letters and numbers",
         });
       }
-
-      try {
-        const updateUser = await User.findByIdAndUpdate(
-          req.params.userId,
-          {
-            userName: req.body.userName,
-            password: req.body.password,
-            userEmail: req.body.userEmail,
-            image: req.body.image,
-          },
-          { new: true }
-        );
-        return res.status(200).json({
-          message: "User updated successfully",
-          success: true,
-          user: updateUser,
-        });
-      } catch (error) {
-        return res.status(400).json({
-          message: "Wrong",
-          success: false,
-        });
-      }
     }
+  }
+
+  try {
+    const updateUser = await User.findByIdAndUpdate(
+      req.params.userId,
+      {
+        userName: req.body.userName,
+        password: req.body.password,
+        userEmail: req.body.userEmail,
+        image: req.body.image,
+      },
+      { new: true }
+    );
+    console.log(updateUser);
+    return res.status(200).json({
+      message: "User updated successfully",
+      success: true,
+      user: updateUser,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: "Wrong",
+      success: false,
+    });
   }
 };

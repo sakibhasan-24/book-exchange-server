@@ -31,7 +31,7 @@ export const signUpUser = async (req, res) => {
     userEmail,
     userName,
     password: hashedPassword,
-    profileImage,
+    image: profileImage,
     isAdmin,
   });
   //   console.log(newUser);
@@ -124,7 +124,7 @@ export const googleSignIn = async (req, res) => {
       userName,
       userEmail,
       password: hashedPassword,
-      profileImage: profilePicture,
+      image: profilePicture,
       isAdmin: false,
     });
     const savedUser = await newUser.save();
