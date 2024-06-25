@@ -92,3 +92,70 @@ export const signin = async (req, res) => {
     return res.status(500).json({ message: error.message, success: false });
   }
 };
+
+export const googleSignIn = async (req, res) => {
+  const { userName, userEmail, profilePicture } = req.body;
+  const alreadyExistUser = await User.findOne({ userEmail });
+  if (alreadyExistUser) {
+    const token = jwt.sign(
+      {
+        id: alreadyExistUser._id,
+        userEmail: alreadyExistUser.userEmail,
+      },
+      process.env.JWT_SECRET
+    );
+    return res
+      .status(200)
+      .cookie("token", token, {
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+      })
+      .json({
+        success: true,
+        message: "user Sign In",
+        user: alreadyExistUser,
+      });
+  } else {
+    const randomPassword = Math.random().toFixed(3).slice(-6);
+    const hashedPassword = bcryptjs.hashSync(randomPassword, 8);
+
+    const newUser = new User({
+      userName,
+      userEmail,
+      password: hashedPassword,
+      profileImage: profilePicture,
+      isAdmin: false,
+    });
+    const savedUser = await newUser.save();
+    const token = jwt.sign({
+      id: savedUser._id,
+      userEmail: savedUser.userEmail,
+    });
+    res
+      .status(200)
+      .cookie(
+        "token",
+        token,
+        {
+          httpOnly: true,
+          sameSite: "none",
+          secure: true,
+        },
+        process.env.JWT_SECRET
+      )
+      .json({
+        success: true,
+        message: "user Sign In",
+        user: savedUser,
+      });
+  }
+
+  try {
+  } catch (error) {
+    return res.status(401).json({
+      message: error.message,
+      success: false,
+    });
+  }
+};
