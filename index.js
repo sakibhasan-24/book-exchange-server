@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import authRoutes from "./api/routes/auth.routes.js";
+import userRoute from "./api/routes/user.routes.js";
 
 dotenv.config();
 const app = express();
@@ -28,6 +29,7 @@ mongoose
   });
 
 app.use("/api/user", authRoutes);
+app.use("/api/user", userRoute);
 app.listen(5000, () => {
   console.log("Server is running at port 5000");
 });
