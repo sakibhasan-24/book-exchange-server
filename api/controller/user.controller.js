@@ -54,3 +54,51 @@ export const userUpdate = async (req, res) => {
     });
   }
 };
+
+export const getAllUser = async (req, res) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({
+      message: "You are not allowed to see all users",
+      success: false,
+    });
+  }
+  try {
+    const users = await User.find();
+    return res.status(200).json({
+      message: "All users",
+      success: true,
+      users: users,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: "Wrong",
+      success: false,
+    });
+  }
+};
+
+export const userDelete = async (req, res) => {
+  console.log(!req.user.isAdmin);
+  if (req.user.id !== req.params.userId && !req.user.isAdmin) {
+    return res.status(403).json({
+      message: "You can delete only your account!",
+      success: false,
+    });
+  }
+  try {
+    const user = await User.findByIdAndDelete(req.params.userId);
+    console.log(user);
+    console.log(user);
+    return res.status(200).json({
+      message: "User deleted successfully",
+      success: true,
+      user: user,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(401).json({
+      message: "Something Went Wrong...",
+      success: false,
+    });
+  }
+};

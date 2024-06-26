@@ -73,6 +73,7 @@ export const signin = async (req, res) => {
       {
         id: validUser._id,
         userEmail: validUser.userEmail,
+        isAdmin: validUser.isAdmin,
       },
       process.env.JWT_SECRET
     );
@@ -94,13 +95,15 @@ export const signin = async (req, res) => {
 };
 
 export const googleSignIn = async (req, res) => {
-  const { userName, userEmail, profilePicture } = req.body;
+  const { userName, userEmail, profileImage } = req.body;
+  console.log(req.body);
   const alreadyExistUser = await User.findOne({ userEmail });
   if (alreadyExistUser) {
     const token = jwt.sign(
       {
         id: alreadyExistUser._id,
         userEmail: alreadyExistUser.userEmail,
+        isAdmin: alreadyExistUser.isAdmin,
       },
       process.env.JWT_SECRET
     );
@@ -119,19 +122,23 @@ export const googleSignIn = async (req, res) => {
   } else {
     const randomPassword = Math.random().toFixed(3).slice(-6);
     const hashedPassword = bcryptjs.hashSync(randomPassword, 8);
-
+    const profilePicture = profileImage || User.schema.paths.image.default();
     const newUser = new User({
       userName,
       userEmail,
       password: hashedPassword,
       image: profilePicture,
-      isAdmin: false,
+      isAdmin: true,
     });
     const savedUser = await newUser.save();
-    const token = jwt.sign({
-      id: savedUser._id,
-      userEmail: savedUser.userEmail,
-    });
+    const token = jwt.sign(
+      {
+        id: savedUser._id,
+        userEmail: savedUser.userEmail,
+        isAdmin: savedUser.isAdmin,
+      },
+      process.env.JWT_SECRET
+    );
     res
       .status(200)
       .cookie(
