@@ -166,3 +166,22 @@ export const googleSignIn = async (req, res) => {
     });
   }
 };
+
+export const signOut = async (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    });
+    return res.status(200).json({
+      message: "User signed out successfully",
+      success: true,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message: error.message,
+      success: false,
+    });
+  }
+};

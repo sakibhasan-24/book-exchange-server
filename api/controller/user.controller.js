@@ -86,13 +86,21 @@ export const userDelete = async (req, res) => {
     });
   }
   try {
-    const user = await User.findByIdAndDelete(req.params.userId);
+    const user = await User.findById(req.params.userId);
+    if (user.isAdmin) {
+      return res.status(403).json({
+        message: "Admin accounts cannot be deleted!",
+        success: false,
+      });
+    }
+    const deltedUser = await User.findByIdAndDelete(req.params.userId);
+
     console.log(user);
     console.log(user);
     return res.status(200).json({
       message: "User deleted successfully",
       success: true,
-      user: user,
+      user: deltedUser,
     });
   } catch (error) {
     console.log(error);
