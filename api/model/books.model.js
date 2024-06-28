@@ -20,10 +20,25 @@ import mongoose from "mongoose";
 */
 const bookSchema = new mongoose.Schema(
   {
-    name: {
+    title: {
       type: String,
       required: true,
     },
+    address: {
+      city: {
+        type: String,
+        required: true,
+      },
+      area: {
+        type: String,
+        required: true,
+      },
+      universityName: {
+        type: String,
+        required: true,
+      },
+    },
+
     category: {
       type: String,
       required: true,
@@ -36,15 +51,12 @@ const bookSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    coverImage: {
+
+    conditions: {
       type: String,
       required: true,
     },
-    preferedLocation: {
-      type: String,
-      required: true,
-    },
-    exchanges: {
+    exchange: {
       type: Boolean,
       required: true,
     },
@@ -53,22 +65,22 @@ const bookSchema = new mongoose.Schema(
       required: true,
     },
 
-    seller: {
+    bookOwner: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
     },
-    demoImages: {
+    bookOwnerEmail: {
+      type: String,
+      required: true,
+    },
+    imagesUrl: {
       type: Array,
       required: true,
     },
     conditions: {
       type: String,
       required: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now(),
     },
   },
   {
