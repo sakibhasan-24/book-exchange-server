@@ -74,7 +74,7 @@ const bookSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    imagesUrl: {
+    imagesUrls: {
       type: Array,
       required: true,
     },
