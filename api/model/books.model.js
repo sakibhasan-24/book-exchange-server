@@ -24,6 +24,26 @@ const bookSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    author: {
+      type: String,
+      required: true,
+    },
+    edition: {
+      type: String,
+      required: true,
+    },
+    isbn: {
+      type: String,
+      required: true,
+    },
+    publisher: {
+      type: String,
+    },
+    publicationYear: {
+      type: Number,
+      required: true,
+    },
+
     address: {
       city: {
         type: String,

@@ -136,3 +136,78 @@ export const updateBook = async (req, res) => {
     });
   }
 };
+
+export const getBookById = async (req, res) => {
+  const existingBook = await Book.findById(req.params.bookId);
+  console.log(existingBook);
+  if (!existingBook) {
+    return res.status(404).json({
+      message: "Book not found",
+      success: false,
+    });
+  }
+  try {
+    return res.status(200).json({
+      message: "Book fetched successfully",
+      success: true,
+      book: existingBook,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+      error: error,
+    });
+  }
+};
+
+export const getAllType = async (req, res) => {
+  try {
+    const startIndex = parseInt(req.query.startIndex) || 0;
+    const limit = parseInt(req.query.limit) || 9;
+    const sort = req.query.order === "asc" ? 1 : -1;
+    const books = await Book.find({
+      ...(req.query.category && {
+        category: req.query.category,
+      }),
+      ...(req.query.title && {
+        title: req.query.title,
+      }),
+      ...(req.query.userId && {
+        userId: req.query.userId,
+      }),
+      ...(req.query.bookId && { _id: req.query.bookId }),
+      ...(req.query.searchTerm && {
+        $or: [
+          { title: { $regex: req.query.searchTerm, $options: "i" } },
+          { address: { $regex: req.query.searchTerm, $options: "i" } },
+          { category: { $regex: req.query.searchTerm, $options: "i" } },
+        ],
+      }),
+    })
+      .sort({ updatedAt: sort })
+      .skip(startIndex)
+      .limit(limit);
+    const totalBook = await Book.countDocuments();
+
+    const now = new Date();
+
+    const oneMonthAgo = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      now.getDate()
+    );
+
+    const lastMonthBook = await Book.countDocuments({
+      createdAt: { $gte: oneMonthAgo },
+    });
+
+    res.status(200).json({
+      books,
+      totalBook,
+      lastMonthBook,
+    });
+  } catch (error) {
+    res.status(401).json({ message: "something went wrong", success: false });
+  }
+};
