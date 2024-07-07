@@ -15,10 +15,49 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isDeliveryPerson: {
+      type: Boolean,
+      default: false,
+    },
+    isDeliveryPersonApplied: {
+      type: Boolean,
+      default: false,
+    },
+    deliveryApplicationStatus: {
+      type: String,
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
+    },
+    deliveryApplicationDate: {
+      type: Date,
+      default: Date.now(),
+    },
     password: {
       type: String,
       required: true,
     },
+    deliveryManAddress: {
+      type: String,
+    },
+    phoneNumber: {
+      type: String,
+    },
+    preferredArea: {
+      type: String,
+    },
+    availability: {
+      type: String,
+    },
+    vehicleInfo: {
+      type: String,
+    },
+    experience: {
+      type: String,
+    },
+    additionalInfo: {
+      type: String,
+    },
+
     image: {
       type: String,
       default:

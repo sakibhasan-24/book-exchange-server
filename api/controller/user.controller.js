@@ -77,6 +77,22 @@ export const getAllUser = async (req, res) => {
   }
 };
 
+export const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    return res.status(200).json({
+      message: "User",
+      success: true,
+      user: user,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: "Wrong",
+      success: false,
+    });
+  }
+};
+
 export const userDelete = async (req, res) => {
   console.log(!req.user.isAdmin);
   if (req.user.id !== req.params.userId && !req.user.isAdmin) {
@@ -108,5 +124,45 @@ export const userDelete = async (req, res) => {
       message: "Something Went Wrong...",
       success: false,
     });
+  }
+};
+
+export const userApply = async (req, res) => {
+  const { userId } = req.params;
+  const {
+    deliveryManAddress,
+    phoneNumber,
+    additionalInfo,
+    preferredArea,
+    availability,
+    experience,
+    vehicleInfo,
+  } = req.body;
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  try {
+    if (userId === req.user.id) {
+      user.isDeliveryPersonApplied = true;
+      user.deliveryManAddress = deliveryManAddress;
+      user.phoneNumber = phoneNumber;
+      user.additionalInfo = additionalInfo;
+      user.preferredArea = preferredArea;
+      user.availability = availability;
+      user.experience = experience;
+      user.vehicleInfo = vehicleInfo;
+      await user.save();
+      return res.status(200).json({
+        message: "Applied successfully",
+        success: true,
+        user: user,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Something went wrong", error: error });
   }
 };
