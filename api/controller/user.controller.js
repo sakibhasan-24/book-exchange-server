@@ -166,3 +166,50 @@ export const userApply = async (req, res) => {
       .json({ message: "Something went wrong", error: error });
   }
 };
+
+export const acceptedRequest = async (req, res) => {
+  const { userId } = req.params;
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  try {
+    if (req.user.isAdmin) {
+      user.isDeliveryPerson = true;
+      user.deliveryApplicationStatus = "accepted";
+      await user.save();
+      return res.status(200).json({
+        message: "Accepted successfully",
+        success: true,
+        user: user,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Something went wrong", error: error });
+  }
+};
+
+export const rejectedRequest = async (req, res) => {
+  const { userId } = req.params;
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  try {
+    if (req.user.isAdmin) {
+      user.isDeliveryPerson = false;
+      user.isDeliveryPersonApplied = false;
+      user.deliveryApplicationStatus = "rejected";
+      await user.save();
+      return res.status(200).json({});
+    }
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Something went wrong", error: error });
+  }
+};

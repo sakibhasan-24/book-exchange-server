@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import authRoutes from "./api/routes/auth.routes.js";
 import userRoute from "./api/routes/user.routes.js";
 import bookRoutes from "./api/routes/books.routes.js";
+import orderRoutes from "./api/routes/order.routes.js";
 
 dotenv.config();
 const app = express();
@@ -13,7 +14,7 @@ const app = express();
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:5174"],
+    origin: ["http://localhost:5173"],
     credentials: true,
   })
 );
@@ -32,6 +33,7 @@ mongoose
 app.use("/api/user", authRoutes);
 app.use("/api/user", userRoute);
 app.use("/api/books", bookRoutes);
+app.use("/api/order", orderRoutes);
 app.listen(5000, () => {
   console.log("Server is running at port 5000");
 });
