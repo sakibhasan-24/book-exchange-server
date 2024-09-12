@@ -19,6 +19,8 @@
     "env": "^0.0.2",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.4.1"
+    "mongoose": "^8.4.1",
+    "sslcommerz-lts": "^1.1.0",
+    "uuidv4": "^6.2.13"
   }
 }

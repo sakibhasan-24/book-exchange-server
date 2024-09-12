@@ -17,6 +17,11 @@ const orderSchema = new mongoose.Schema(
           ref: "Book",
           required: true,
         },
+        bookOwner: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
       },
     ],
     deliveryAddress: {
@@ -72,6 +77,7 @@ const orderSchema = new mongoose.Schema(
       type: Date,
     },
   },
+
   {
     timestamps: true,
   }
