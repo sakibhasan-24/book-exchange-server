@@ -110,7 +110,7 @@ const bookSchema = new mongoose.Schema(
     },
     bookStatus: {
       type: String,
-      enum: ["available", "rent", "sell"],
+      enum: ["available", "rent", "sold"],
       default: "available",
     },
     isAvailable: {
