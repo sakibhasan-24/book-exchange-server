@@ -18,7 +18,7 @@ export const verifyToken = (req, res, next) => {
         .json({ message: "You are not authenticated!", success: false });
     }
 
-    console.log(verified);
+    // console.log(verified);
     req.user = verified;
     next();
   });

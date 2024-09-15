@@ -7,6 +7,7 @@ const store_password = process.env.STORE_PASS;
 const isLive = false;
 
 import Order from "../model/order.model.js";
+import Book from "../model/books.model.js";
 
 export const createOrders = async (req, res) => {
   if (req.user.isAdmin) {
@@ -22,7 +23,7 @@ export const createOrders = async (req, res) => {
     totalPrice,
     deliveryAddress,
   } = req.body;
-  console.log("rew", deliveryAddress);
+  // console.log("rew", deliveryAddress);
   if (!orderItems || orderItems.length === 0) {
     return res.status(400).json({ message: "No order items", success: false });
   }
@@ -58,11 +59,35 @@ export const getOrderById = async (req, res) => {
       "user",
       "name email"
     );
-    console.log(order);
+    // console.log(order);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
     return res.status(200).json({ order, success: true });
+  } catch (error) {
+    return res.status(500).json({ message: error.message, success: false });
+  }
+};
+
+export const getOrderByUser = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id }).populate(
+      "user",
+      "name email"
+    );
+    return res.status(200).json({ orders, success: true });
+  } catch (error) {
+    return res.status(500).json({ message: error.message, success: false });
+  }
+};
+export const getAllOrders = async (req, res) => {
+  try {
+    if (req.user.isAdmin) {
+      const orders = await Order.find().populate("user", "name email");
+      return res.status(200).json({ orders, success: true });
+    } else {
+      return res.status(401).json({ message: "Unauthorized", success: false });
+    }
   } catch (error) {
     return res.status(500).json({ message: error.message, success: false });
   }
@@ -81,42 +106,74 @@ export const createPayment = async (req, res) => {
   }
 
   // console.log("payment", data);
-};
-try {
-  const order = await Order.findById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ message: "Order not found", success: false });
-  }
-  // console.log("payment ", order);
-  const data = {
-    total_amount: order.totalPrice,
-    currency: "BDT",
-    tran_id: uuidv4(),
-    success_url: `http://localhost:3000/api/v1/orders/payment-success/${order._id}`,
-    fail_url: `http://localhost:3000/api/v1/orders/payment-failed/${order._id}`,
-    cancel_url: "http://localhost:3030/cancel",
-    ipn_url: "http://localhost:3030/ipn",
-    shipping_method: "Courier",
-    product_name: order.title,
-    product_profile: order.orderItems,
-    cus_name: order.deliveryAddress.name,
-    cus_email: order.deliveryAddress.email,
-    cus_address: order.deliveryAddress.address,
-    cus_country: "Bangladesh",
-    cus_phone: order.deliveryAddress.phone,
-  };
-  const sslcz = new SSLCommerzPayment(store_id, store_password, isLive);
-  const apiResponse = await sslcz.init(data);
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ message: "Order not found", success: false });
+    }
 
-  // Redirect the user to the payment gateway
-  let GatewayPageURL = apiResponse.GatewayPageURL;
-  // console.log(GatewayPageURL);
-  res.send(GatewayPageURL);
-  if (apiResponse.status === "SUCCESS") {
-    order.isPaid = true;
-    order.paidAt = Date.now();
-    await order.save();
+    const tran_id = uuidv4();
+
+    const data = {
+      total_amount: order.totalPrice,
+      currency: "BDT",
+      tran_id,
+      success_url: `http://localhost:5173/order/${order._id}`, // Redirect here on success
+      fail_url: `http://localhost:5173/order/${order._id}`, // Redirect here on failure
+      cancel_url: `http://localhost:5173/order/${order._id}`, // Optional: handle cancellation
+      ipn_url: "http://localhost:3030/ipn",
+      shipping_method: "Courier",
+
+      product_name: "something",
+      product_category: "something",
+      product_profile: order.orderItems
+        .map((item) => item.imagesUrls[0])
+        .join(", "),
+      cus_name: order.deliveryAddress.name,
+      cus_email: order.deliveryAddress.email,
+      cus_address: order.deliveryAddress.address,
+      cus_country: "Bangladesh",
+      cus_phone: order.deliveryAddress.phone,
+      // Add the missing field
+      ship_name: order.deliveryAddress.name, // Shipping name
+      ship_add1: order.deliveryAddress.address,
+      ship_city: "Dhaka",
+      ship_state: "Dhaka",
+      ship_postcode: 1000,
+      ship_country: "Bangladesh",
+    };
+
+    const sslcz = new SSLCommerzPayment(store_id, store_password, isLive);
+    const apiResponse = await sslcz.init(data);
+
+    // console.log(apiResponse.status);
+    // Redirect the user to the payment gateway
+    let GatewayPageURL = apiResponse.GatewayPageURL;
+    // console.log(GatewayPageURL);
+    res.send(GatewayPageURL);
+    if (apiResponse.status === "SUCCESS") {
+      order.isPaid = true;
+      order.isAvailable = false;
+      order.bookStatus = "sell";
+      order.paidAt = Date.now();
+      order.transactionId = tran_id;
+      const bookIds = order.orderItems.map((item) => item.product);
+      await Promise.all(
+        bookIds.map(async (bookId) => {
+          await Book.updateOne(
+            { _id: bookId },
+            { $set: { bookStatus: "sold", isAvailable: false } } // Update the status to 'sold'
+          );
+        })
+      );
+
+      // order.paidAt = Date.now();
+      await order.save();
+      // console.log("new Order", order);
+    }
+  } catch (error) {
+    return res.status(500).json({ message: error.message, success: false });
   }
-} catch (error) {
-  return res.status(500).json({ message: error.message, success: false });
-}
+};

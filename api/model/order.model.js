@@ -68,6 +68,9 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
+    transactionId: {
+      type: String,
+    },
     deliveryStatus: {
       type: String,
       enum: ["Not Delivered", "On the Way", "Delivered"],

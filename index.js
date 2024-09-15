@@ -7,8 +7,9 @@ import authRoutes from "./api/routes/auth.routes.js";
 import userRoute from "./api/routes/user.routes.js";
 import bookRoutes from "./api/routes/books.routes.js";
 import orderRoutes from "./api/routes/order.routes.js";
-
+import path from "path";
 dotenv.config();
+
 const app = express();
 // console.log(process.env.MONGO_URL);
 app.use(cookieParser());
@@ -18,6 +19,7 @@ app.use(
     credentials: true,
   })
 );
+
 // console.log(`https://api.imgbb.com/1/upload?key=${process.env.IMAGE_HOISTING}`);
 
 app.use(express.json());
