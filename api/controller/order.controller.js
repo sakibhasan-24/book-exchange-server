@@ -8,6 +8,7 @@ const isLive = false;
 
 import Order from "../model/order.model.js";
 import Book from "../model/books.model.js";
+import DeliveryMan from "../model/deliveryMan.model.js";
 
 export const createOrders = async (req, res) => {
   if (req.user.isAdmin) {
@@ -164,7 +165,7 @@ export const createPayment = async (req, res) => {
         bookIds.map(async (bookId) => {
           await Book.updateOne(
             { _id: bookId },
-            { $set: { bookStatus: "sold", isAvailable: false } } // Update the status to 'sold'
+            { $set: { bookStatus: "available", isAvailable: false } } // Update the status to 'sold'
           );
         })
       );
@@ -175,5 +176,147 @@ export const createPayment = async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json({ message: error.message, success: false });
+  }
+};
+
+export const assignDeliveryMan = async (req, res) => {
+  const { orderId, deliveryManId } = req.body;
+
+  try {
+    // Check if the user is an admin first
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ message: "Unauthorized", success: false });
+    }
+
+    // Fetch the order by ID
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ message: "Order not found", success: false });
+    }
+
+    console.log(order?.assignedDeliveryMan);
+    if (order.assignedDeliveryMan) {
+      return res.status(400).json({
+        message: "Delivery Man already assigned",
+        success: false,
+      });
+    }
+
+    // Fetch the delivery man by ID
+    const deliveryMan = await DeliveryMan.findById(deliveryManId);
+    if (!deliveryMan) {
+      return res
+        .status(404)
+        .json({ message: "Delivery Man not found", success: false });
+    }
+
+    // Assign the delivery man to the order
+    order.assignedDeliveryMan = deliveryManId;
+    // deliveryMan.assignedOrders.push(order._id);
+    // deliveryMan.status =
+    //   deliveryMan?.assignedOrders?.length > 0 ? "working" : "available";
+
+    await order.save();
+    // await deliveryMan.save();
+    // console.log(deliveryMan);
+
+    return res.status(200).json({
+      message: "Delivery Man successfully assigned",
+      order,
+      success: true,
+    });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false });
+  }
+};
+// export const assignDeliveryMan = async (req, res) => {
+//   const { orderId, deliveryManId } = req.body;
+
+//   try {
+//     // Check if the user is an admin first
+//     if (!req.user.isAdmin) {
+//       return res.status(403).json({ message: "Unauthorized", success: false });
+//     }
+
+//     // Fetch the order by ID
+//     const order = await Order.findById(orderId);
+//     if (!order) {
+//       return res
+//         .status(404)
+//         .json({ message: "Order not found", success: false });
+//     }
+
+//     if (order.assignedDeliveryMan) {
+//       return res.status(400).json({
+//         message: "Delivery Man already assigned",
+//         success: false,
+//       });
+//     }
+
+//     // Fetch the delivery man by ID
+//     const deliveryMan = await DeliveryMan.findById(deliveryManId);
+//     if (!deliveryMan) {
+//       return res
+//         .status(404)
+//         .json({ message: "Delivery Man not found", success: false });
+//     }
+
+//     // Assign the delivery man to the order
+//     order.assignedDeliveryMan = deliveryManId;
+
+//     // Save the order first
+//     await order.save();
+
+//     // After the order is saved, update the delivery man
+//     deliveryMan.assignedOrders.push(order._id);
+//     deliveryMan.status =
+//       deliveryMan.assignedOrders.length > 0 ? "working" : "available";
+
+//     // Save the delivery man after saving the order
+//     return res.status(200).json({
+//       message: "Delivery Man successfully assigned",
+//       order,
+//       success: true,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     return res
+//       .status(500)
+//       .json({ message: "Internal server error", success: false });
+//   }
+// };
+
+export const assignDeliveryManProduct = async (req, res) => {
+  const { orderId, deliveryManId } = req.body;
+  const deliveryMan = await DeliveryMan.findById(deliveryManId);
+  if (!deliveryMan) {
+    return res
+      .status(404)
+      .json({ message: "Delivery Man not found", success: false });
+  }
+  const order = await Order.findById(orderId);
+  if (!order) {
+    return res.status(404).json({ message: "Order not found", success: false });
+  }
+  try {
+    deliveryMan.assignedOrders.push(order._id);
+    deliveryMan.status =
+      deliveryMan.assignedOrders.length > 0 ? "inactive" : "active";
+    await deliveryMan.save();
+    return res.status(200).json({
+      message: "Delivery Man successfully assigned",
+      order,
+      success: true,
+    });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false });
   }
 };

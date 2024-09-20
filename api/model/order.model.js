@@ -73,8 +73,19 @@ const orderSchema = new mongoose.Schema(
     },
     deliveryStatus: {
       type: String,
-      enum: ["Not Delivered", "On the Way", "Delivered"],
+      enum: [
+        "Not Delivered",
+        "Delivery Man Collect From Store",
+        "On the Way",
+
+        "Delivered",
+      ],
       default: "Not Delivered",
+    },
+    assignedDeliveryMan: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DeliveryMan",
+      default: null,
     },
     deliveredAt: {
       type: Date,

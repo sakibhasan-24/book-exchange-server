@@ -8,6 +8,7 @@ import userRoute from "./api/routes/user.routes.js";
 import bookRoutes from "./api/routes/books.routes.js";
 import orderRoutes from "./api/routes/order.routes.js";
 import path from "path";
+import deliveryManRoutes from "./api/routes/deliveryman.routes.js";
 dotenv.config();
 
 const app = express();
@@ -36,6 +37,7 @@ app.use("/api/user", authRoutes);
 app.use("/api/user", userRoute);
 app.use("/api/books", bookRoutes);
 app.use("/api/order", orderRoutes);
+app.use("/api/deliveryMan", deliveryManRoutes);
 app.listen(5000, () => {
   console.log("Server is running at port 5000");
 });

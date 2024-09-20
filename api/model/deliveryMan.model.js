@@ -11,6 +11,10 @@ const deliveryManSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    password: {
+      type: String,
+      required: true,
+    },
     phone: {
       type: String,
       required: true,
@@ -25,20 +29,15 @@ const deliveryManSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
   },
   { timestamps: true }
 );
 
-deliveryManSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    next();
-  }
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-deliveryManSchema.methods.validatePassword = function (password) {
-  return bcrypt.compareSync(password, this.password);
-};
 const DeliveryMan = mongoose.model("DeliveryMan", deliveryManSchema);
 
 export default DeliveryMan;

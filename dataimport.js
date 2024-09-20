@@ -15,7 +15,7 @@ mongoose
 
 const importData = async () => {
   try {
-    const createdDeliveryMan = await User.insertMany(deliveryManData);
+    const createdDeliveryMan = await DeliveryMan.insertMany(deliveryManData);
 
     await DeliveryMan.insertMany(createdDeliveryMan);
     console.log("Data Imported!");
