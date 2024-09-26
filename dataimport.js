@@ -1,9 +1,11 @@
+import bcryptjs from "bcryptjs";
 import mongoose from "mongoose";
-
 import dotenv from "dotenv";
 import deliveryManData from "./data/deliveryman.js";
-import DeliveryMan from "./api/model/deliveryMan.model.js";
+import User from "./api/model/user.model.js";
+
 dotenv.config();
+
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
@@ -15,9 +17,14 @@ mongoose
 
 const importData = async () => {
   try {
-    const createdDeliveryMan = await DeliveryMan.insertMany(deliveryManData);
+    const hashedDeliveryManData = await Promise.all(
+      deliveryManData.map(async (man) => {
+        const hashedPassword = await bcryptjs.hash(man.password, 10);
+        return { ...man, password: hashedPassword };
+      })
+    );
 
-    await DeliveryMan.insertMany(createdDeliveryMan);
+    await User.insertMany(hashedDeliveryManData);
     console.log("Data Imported!");
     process.exit();
   } catch (error) {
@@ -28,6 +35,7 @@ const importData = async () => {
 
 const destroyData = async () => {
   try {
+    await User.deleteMany();
     console.log("Data Destroyed!");
     process.exit();
   } catch (error) {

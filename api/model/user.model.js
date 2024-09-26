@@ -6,6 +6,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    password: {
+      type: String,
+      required: true,
+    },
     userEmail: {
       type: String,
       unique: true,
@@ -19,45 +23,42 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    isDeliveryPersonApplied: {
+    isRedAlert: {
       type: Boolean,
       default: false,
     },
-    deliveryApplicationStatus: {
+    role: {
       type: String,
-      enum: ["pending", "accepted", "rejected"],
-      default: "pending",
+      enum: ["user", "admin", "deliveryMan"],
+      default: "user",
     },
-    deliveryApplicationDate: {
-      type: Date,
-      default: Date.now(),
+    assignedOrders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+        required: function () {
+          return this.role === "deliveryMan";
+        },
+      },
+    ],
+    totalEarnings: {
+      type: Number,
+      default: function () {
+        return this.role === "user" || this.role === "admin" ? 0.0 : undefined;
+      },
     },
-    password: {
-      type: String,
-      required: true,
+    profits: {
+      type: Number,
+      default: function () {
+        return this.role === "admin" ? 0.0 : undefined;
+      },
     },
-    deliveryManAddress: {
-      type: String,
+    expense: {
+      type: Number,
+      default: function () {
+        return this.role === "admin" ? 0.0 : undefined;
+      },
     },
-    phoneNumber: {
-      type: String,
-    },
-    preferredArea: {
-      type: String,
-    },
-    availability: {
-      type: String,
-    },
-    vehicleInfo: {
-      type: String,
-    },
-    experience: {
-      type: String,
-    },
-    additionalInfo: {
-      type: String,
-    },
-
     image: {
       type: String,
       default:
@@ -68,5 +69,24 @@ const userSchema = new mongoose.Schema(
 );
 
 const User = mongoose.model("User", userSchema);
+userSchema.pre("save", function (next) {
+  if (this.isNew) {
+    // Check role and set default values
+    if (this.role === "user" || this.role === "admin") {
+      this.totalEarnings = 0.0;
+    } else {
+      this.totalEarnings = undefined; // Or delete the field
+    }
+
+    if (this.role === "admin") {
+      this.profits = 0.0;
+      this.expense = 0.0;
+    } else {
+      this.profits = undefined; // Or delete the field
+      this.expense = undefined; // Or delete the field
+    }
+  }
+  next();
+});
 
 export default User;

@@ -56,7 +56,8 @@ export const signin = async (req, res) => {
   }
   try {
     const validUser = await User.findOne({ userEmail });
-    console.log(validUser);
+
+    // console.log("sign", validUser);
     if (!validUser) {
       return res
         .status(400)
@@ -64,6 +65,7 @@ export const signin = async (req, res) => {
     }
 
     const matchPassword = bcryptjs.compareSync(password, validUser.password);
+    console.log(matchPassword);
     if (!matchPassword) {
       return res
         .status(400)
