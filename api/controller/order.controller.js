@@ -341,3 +341,58 @@ export const assignDeliveryManProduct = async (req, res) => {
       .json({ message: "Internal server error", success: false });
   }
 };
+
+export const getDeliveryManProducts = async (req, res) => {
+  const deliveryManId = req.params.id;
+  console.log(deliveryManId);
+  try {
+    // const deliveryMan = await Order.findById({
+    //   assignedDeliveryMan: deliveryManId,
+    // });
+    const deliveryManOrders = await Order.find({
+      assignedDeliveryMan: deliveryManId,
+    });
+    if (!deliveryManOrders) {
+      return res
+        .status(404)
+        .json({ message: "Delivery Man not found", success: false });
+    }
+
+    return res.status(200).json({
+      message: "Delivery Man products fetched successfully",
+      products: deliveryManOrders,
+      success: true,
+    });
+  } catch (err) {
+    console.log(err.message);
+    return res.status(500).json({ message: err, success: false });
+  }
+};
+
+export const updateOrderStatus = async (req, res) => {
+  const { id } = req.params; // This is the order ID
+  const { deliveryStatus } = req.body;
+  console.log(deliveryStatus);
+  try {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { deliveryStatus },
+      { new: true }
+    );
+    console.log(updatedOrder);
+
+    if (!updatedOrder) {
+      return res
+        .status(404)
+        .json({ message: "Order not found", success: false });
+    }
+
+    return res.status(200).json({
+      message: "Order status updated successfully",
+      order: updatedOrder,
+      success: true,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Update failed", success: false });
+  }
+};

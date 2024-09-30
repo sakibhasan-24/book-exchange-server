@@ -101,7 +101,6 @@ const orderSchema = new mongoose.Schema(
         "Not Delivered",
         "Delivery Man Collect From Store",
         "On the Way",
-
         "Delivered",
       ],
       default: "Not Delivered",
