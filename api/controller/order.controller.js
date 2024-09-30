@@ -9,6 +9,7 @@ const isLive = false;
 import Order from "../model/order.model.js";
 import Book from "../model/books.model.js";
 import DeliveryMan from "../model/deliveryMan.model.js";
+import User from "../model/user.model.js";
 
 export const createOrders = async (req, res) => {
   if (req.user.isAdmin) {
@@ -181,7 +182,7 @@ export const createPayment = async (req, res) => {
 
 export const assignDeliveryMan = async (req, res) => {
   const { orderId, deliveryManId } = req.body;
-
+  console.log(req.body);
   try {
     // Check if the user is an admin first
     if (!req.user.isAdmin) {
@@ -189,15 +190,17 @@ export const assignDeliveryMan = async (req, res) => {
     }
 
     // Fetch the order by ID
-    const order = await Order.findById(orderId);
+    const order = await Order.findById({ _id: orderId });
+    // console.log(order);
     if (!order) {
       return res
         .status(404)
         .json({ message: "Order not found", success: false });
     }
 
-    console.log(order?.assignedDeliveryMan);
+    // console.log(order?.assignedDeliveryMan);
     if (order.assignedDeliveryMan) {
+      console.log("Delivery Man already assigned", order?.assignedDeliveryMan);
       return res.status(400).json({
         message: "Delivery Man already assigned",
         success: false,
@@ -205,7 +208,8 @@ export const assignDeliveryMan = async (req, res) => {
     }
 
     // Fetch the delivery man by ID
-    const deliveryMan = await DeliveryMan.findById(deliveryManId);
+    const deliveryMan = await User.findById({ _id: deliveryManId });
+    console.log("d", deliveryMan);
     if (!deliveryMan) {
       return res
         .status(404)
@@ -293,24 +297,41 @@ export const assignDeliveryMan = async (req, res) => {
 
 export const assignDeliveryManProduct = async (req, res) => {
   const { orderId, deliveryManId } = req.body;
-  const deliveryMan = await DeliveryMan.findById(deliveryManId);
+  // console.log("body", req.body);
+  if (!orderId || !deliveryManId) {
+    return res.status(400).json({
+      message: "Please provide orderId and deliveryManId",
+      success: false,
+    });
+  }
+  const deliveryMan = await User.findById({ _id: deliveryManId });
   if (!deliveryMan) {
     return res
       .status(404)
       .json({ message: "Delivery Man not found", success: false });
   }
-  const order = await Order.findById(orderId);
+  const order = await Order.findById({ _id: orderId });
   if (!order) {
     return res.status(404).json({ message: "Order not found", success: false });
   }
+  if (order?.assignedDeliveryMan) {
+    console.log("already assigned");
+    return res
+      .status(404)
+      .json({ message: "Order already assigned", success: false });
+  }
   try {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { assignedDeliveryMan: deliveryManId }, // Update with delivery man ID
+      { new: true } // Return the updated document
+    );
     deliveryMan.assignedOrders.push(order._id);
-    deliveryMan.status =
-      deliveryMan.assignedOrders.length > 0 ? "inactive" : "active";
-    await deliveryMan.save();
+    await deliveryMan.save(); // Save the updated delivery man
+
     return res.status(200).json({
       message: "Delivery Man successfully assigned",
-      order,
+      order: updatedOrder,
       success: true,
     });
   } catch (err) {

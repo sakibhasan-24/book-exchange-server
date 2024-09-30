@@ -394,8 +394,7 @@ export const getAllReview = async (req, res) => {
       path: "bookReviews",
       populate: {
         path: "user",
-        select: "userName",
-        select: "image",
+        select: "userName image",
       },
     });
     if (!book) {

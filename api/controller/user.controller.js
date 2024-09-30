@@ -127,6 +127,24 @@ export const userDelete = async (req, res) => {
   }
 };
 
+// get deliveryMan
+export const getAllDeliveryMan = async (req, res) => {
+  try {
+    const deliveryMan = await User.find({ isDeliveryPerson: true });
+    return res.status(200).json({
+      message: "All DeliveryMan",
+      success: true,
+      deliveryMan,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(401).json({
+      message: "Something Went Wrong...",
+      success: false,
+    });
+  }
+};
+
 export const userApply = async (req, res) => {
   const { userId } = req.params;
   const {

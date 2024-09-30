@@ -37,7 +37,7 @@ app.use("/api/user", authRoutes);
 app.use("/api/user", userRoute);
 app.use("/api/books", bookRoutes);
 app.use("/api/order", orderRoutes);
-app.use("/api/deliveryMan", deliveryManRoutes);
+// app.use("/api/deliveryMan", deliveryManRoutes);
 app.listen(5000, () => {
   console.log("Server is running at port 5000");
 });
