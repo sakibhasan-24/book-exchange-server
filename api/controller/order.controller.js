@@ -11,6 +11,51 @@ import Book from "../model/books.model.js";
 import DeliveryMan from "../model/deliveryMan.model.js";
 import User from "../model/user.model.js";
 
+// export const createOrders = async (req, res) => {
+//   if (req.user.isAdmin) {
+//     return res
+//       .status(401)
+//       .json({ message: "You are not authorized to perform this action" });
+//   }
+//   const {
+//     orderItems,
+//     paymentMethod,
+//     productPrice,
+//     shippingPrice,
+//     totalPrice,
+//     deliveryAddress,
+//   } = req.body;
+//   console.log("rew", orderItems);
+//   if (!orderItems || orderItems.length === 0) {
+//     return res.status(400).json({ message: "No order items", success: false });
+//   }
+
+//   try {
+//     const order = new Order({
+//       orderItems: orderItems.map((item) => ({
+//         ...item,
+//         product: item._id,
+//         bookOwner: item.bookOwner,
+//         returnDate: item.returnDate,
+//         durationDate: item.durationDate,
+//         remainingDays: item.remainingDays,
+//         _id: undefined,
+//       })),
+//       deliveryAddress,
+//       paymentMethod,
+//       productPrice,
+//       shippingPrice,
+//       totalPrice,
+//       user: req.user.id,
+//     });
+
+//     const createdOrder = await order.save();
+//     return res.status(201).json({ createdOrder, success: true });
+//   } catch (error) {
+//     return res.status(500).json({ message: error.message, success: false });
+//   }
+// };
+// update create order
 export const createOrders = async (req, res) => {
   if (req.user.isAdmin) {
     return res
@@ -25,30 +70,56 @@ export const createOrders = async (req, res) => {
     totalPrice,
     deliveryAddress,
   } = req.body;
-  // console.log("rew", deliveryAddress);
+
+  // console.log("body", req.body);
   if (!orderItems || orderItems.length === 0) {
     return res.status(400).json({ message: "No order items", success: false });
   }
 
   try {
-    const order = new Order({
-      orderItems: orderItems.map((item) => ({
-        ...item,
+    // Map through the order items and conditionally add the rental fields
+    const mappedOrderItems = orderItems.map((item) => {
+      const orderItem = {
+        title: item.title,
+        imagesUrls: item.imagesUrls,
+        price: item.price,
+        orderType: item.orderType,
         product: item._id,
         bookOwner: item.bookOwner,
+        bookStatus: item.orderType,
         _id: undefined,
-      })),
+      };
+
+      if (item.orderType === "rent") {
+        orderItem.durationDate = item.durationDate;
+        orderItem.returnDate = item.returnDate;
+
+        const today = new Date();
+        const returnDate = new Date(item.returnDate);
+
+        const diffTime = returnDate.getTime() - today.getTime();
+        const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        orderItem.remainingDays = remainingDays;
+      }
+
+      return orderItem;
+    });
+
+    const order = new Order({
+      orderItems: mappedOrderItems,
       deliveryAddress,
       paymentMethod,
       productPrice,
       shippingPrice,
       totalPrice,
-
       user: req.user.id,
     });
+
     const createdOrder = await order.save();
     return res.status(201).json({ createdOrder, success: true });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: error.message, success: false });
   }
 };
@@ -110,6 +181,7 @@ export const createPayment = async (req, res) => {
   // console.log("payment", data);
   try {
     const order = await Order.findById(req.params.id);
+    console.log("order", order);
     if (!order) {
       return res
         .status(404)
@@ -158,15 +230,17 @@ export const createPayment = async (req, res) => {
     if (apiResponse.status === "SUCCESS") {
       order.isPaid = true;
       order.isAvailable = false;
-      order.bookStatus = "sell";
       order.paidAt = Date.now();
       order.transactionId = tran_id;
+      // order.user = req.user.id;
       const bookIds = order.orderItems.map((item) => item.product);
+      const orderType = order.orderItems.map((item) => item.orderType);
+
       await Promise.all(
-        bookIds.map(async (bookId) => {
+        order.orderItems.map(async (item) => {
           await Book.updateOne(
-            { _id: bookId },
-            { $set: { bookStatus: "available", isAvailable: false } } // Update the status to 'sold'
+            { _id: item.product },
+            { $set: { bookStatus: item.orderType, isAvailable: false } }
           );
         })
       );
@@ -370,7 +444,7 @@ export const getDeliveryManProducts = async (req, res) => {
 };
 
 export const updateOrderStatus = async (req, res) => {
-  const { id } = req.params; // This is the order ID
+  const { id } = req.params;
   const { deliveryStatus } = req.body;
   console.log(deliveryStatus);
   try {
@@ -379,7 +453,7 @@ export const updateOrderStatus = async (req, res) => {
       { deliveryStatus },
       { new: true }
     );
-    console.log(updatedOrder);
+    // console.log(updatedOrder);
 
     if (!updatedOrder) {
       return res

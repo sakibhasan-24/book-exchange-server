@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import { v4 as uuidv4 } from "uuid";
 import User from "../model/user.model.js";
+import Order from "../model/order.model.js";
 const store_id = process.env.STORE_ID;
 const store_password = process.env.STORE_PASS;
 const isLive = false;
@@ -412,4 +413,223 @@ export const getAllReview = async (req, res) => {
     console.log(error);
     return res.status(401).json({ message: "Server error", success: false });
   }
+};
+
+// get rent books
+export const getAllRentBooks = async (req, res) => {
+  const { id } = req.params;
+  const user = await User.findById({ _id: id });
+  if (!user) {
+    return res.status(404).json({ message: "User not found", success: false });
+  }
+
+  try {
+    if (user?.isAdmin) {
+      // Use .lean() to get plain JavaScript objects
+      const books = await Order.find({})
+        .populate("user", "userName userEmail  isRedAlert image")
+        .lean();
+      // console.log("book", books);
+
+      if (!books || books.length === 0) {
+        return res
+          .status(404)
+          .json({ message: "No books found", success: false });
+      }
+
+      const rentBooks = books.flatMap((book) =>
+        book.orderItems
+          .filter((item) => item.orderType === "rent")
+          .map((item) => ({
+            ...item,
+            user: book.user, // Attach user data to the book item
+          }))
+      );
+
+      if (!rentBooks || rentBooks.length === 0) {
+        return res
+          .status(404)
+          .json({ message: "No rent books found", success: false });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "All rent books", success: true, rentBooks });
+    }
+
+    // For regular users
+    const order = await Order.find({ user: id })
+      .populate("user", "userName userEmail isRedAlert image")
+      .lean();
+    // console.log("s", order);
+
+    if (!order || order.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No order found", success: false });
+    }
+
+    const rentBooks = order.flatMap((book) =>
+      book.orderItems
+        .filter((item) => item.orderType === "rent")
+        .map((item) => ({
+          ...item,
+          user: book.user, // Attach user data to the book item
+        }))
+    );
+
+    if (!rentBooks || rentBooks.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No rent books found", success: false });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "All rent books", success: true, rentBooks });
+  } catch (error) {
+    return res.status(500).json({ message: error.message, success: false });
+  }
+};
+
+export const sendRentBookToStore = async (req, res) => {
+  const { id } = req.params; // Book ID
+  console.log("param"); //3a
+  const { user } = req.body; // User ID
+  console.log("body", req.body);
+  const userInfo = await User.findById({ _id: user });
+  // console.log(userInfo);
+  const bookFromId = await Book.findById({ _id: id });
+
+  if (bookFromId.bookStatus === "rent") {
+    console.log("Book is Rented");
+    // console.log(bookFromId);
+    const updatedBook = await Book.findByIdAndUpdate(
+      id,
+      { bookStatus: "available" }, // Update: Set the new status
+      { new: true } // Return the updated document
+    );
+    const order = await Order.find({ user }).lean();
+    const rentBooks = order
+      .flatMap((order) => order.orderItems)
+      .find(
+        (item) =>
+          item.orderType === "rent" &&
+          item.product.toString() === bookFromId._id.toString()
+      );
+
+    console.log("all order for user", rentBooks.product);
+
+    if (rentBooks?.isBack === false) {
+      console.log(rentBooks);
+
+      // Find the order that contains the specific order item
+      const order = await Order.findOne({
+        "orderItems._id": rentBooks._id, // Match the order item by its ID
+      });
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ message: "Order not found", success: false });
+      }
+
+      // Update the isBack field for the specific order item
+      const updatedOrder = await Order.updateOne(
+        { "orderItems._id": rentBooks._id }, // Match the specific order item
+        { $set: { "orderItems.$.isBack": true } } // Update isBack to true
+      );
+
+      console.log("Order updated:", updatedOrder);
+
+      return res
+        .status(200)
+        .json({ message: "Book return updated", success: true });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Book is available", success: true });
+  }
+};
+
+export const blockedUser = async (req, res) => {
+  if (req.user.isAdmin === false) {
+    return res.status(401).json({
+      message: "You are not authorized to perform this action",
+      success: false,
+    });
+  }
+
+  const { id } = req.params;
+  // console.log(id);
+  const orders = await Order.find({ user: id }).lean();
+  // console.log("s", orders);
+  if (!orders) {
+    return res.status(404).json({ message: "Order not found", success: false });
+  }
+  const allOrderItems = orders.flatMap((order) => order.orderItems);
+
+  // console.log("All order items for the user:", allOrderItems);
+  const isValidForBlock = allOrderItems.filter(
+    (orderItem) => orderItem.isBack === false
+  );
+  // console.log("isValidForBlock", isValidForBlock);
+  if (isValidForBlock.length > 0) {
+    const today = new Date();
+
+    const remainingDays = isValidForBlock.map((orderItem) => {
+      const returnDate = new Date(orderItem.returnDate);
+      const timeDifference = returnDate - today;
+      const daysRemaining = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+      return daysRemaining;
+    });
+    const blockBasedOnDays = remainingDays.map((d) => (d < 0 ? true : false));
+    console.log(blockBasedOnDays);
+    if (blockBasedOnDays.includes(true)) {
+      const blockUser = await User.updateOne({ _id: id }, { isRedAlert: true });
+      return res
+        .status(200)
+        .json({ message: "User blocked", success: true, blockUser });
+    }
+  }
+
+  // console.log();
+};
+
+export const unBlockedUser = async (req, res) => {
+  if (req.user.isAdmin === false) {
+    return res.status(401).json({
+      message: "You are not authorized to perform this action",
+      success: false,
+    });
+  }
+
+  const { id } = req.params;
+  console.log(id);
+  // const orders = await Order.find({ user: id }).lean();
+  // // console.log("s", orders);
+  // if (!orders) {
+  //   return res.status(404).json({ message: "Order not found", success: false });
+  // }
+  // const allOrderItems = orders.flatMap((order) => order.orderItems);
+
+  // // console.log("All order items for the user:", allOrderItems);
+  // const isValidForUnBlock = allOrderItems.filter(
+  //   (orderItem) => orderItem.isBack === true
+  // );
+  // console.log("isValidUnForBlock", isValidForUnBlock);
+  // if (isValidForUnBlock.length === 0) {
+  // }
+  const user = await User.findById({ _id: req.params.id });
+  if (user.isRedAlert === true) {
+    user.isRedAlert = false;
+    user.save();
+    return res.status(200).json({
+      message: "User is unblocked",
+      success: true,
+    });
+  }
+
+  // console.log();
 };

@@ -12,6 +12,10 @@ import {
   createReview,
   getReview,
   getAllReview,
+  getAllRentBooks,
+  sendRentBookToStore,
+  blockedUser,
+  unBlockedUser,
 } from "../controller/books.controller.js";
 
 const router = express.Router();
@@ -27,4 +31,8 @@ router.put("/confirmedBook/:id", verifyToken, confirmedBook);
 router.put("/review/:id", verifyToken, createReview);
 router.get("/review/:id", getReview);
 router.get("/getAllreview/:bookId", getAllReview);
+router.get("/getAllRentBooks/:id", verifyToken, getAllRentBooks);
+router.put("/sentBookToStore/:id", verifyToken, sendRentBookToStore);
+router.put("/blockUser/:id", verifyToken, blockedUser);
+router.put("/unBlockUser/:id", verifyToken, unBlockedUser);
 export default router;

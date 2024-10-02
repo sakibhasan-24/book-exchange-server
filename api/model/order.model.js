@@ -12,27 +12,37 @@ const orderSchema = new mongoose.Schema(
         title: { type: String, required: true },
         imagesUrls: { type: Array, required: true },
         price: { type: Number, required: true },
+        bookStatus: { type: String, required: true },
         orderType: {
           type: String,
           required: true,
           enum: ["sell", "rent"],
         },
         durationDate: {
-          type: Date,
+          type: Number,
           required: function () {
             return this.orderType === "rent";
           },
-          returnDate: {
-            type: Date,
-            required: function () {
-              return this.orderType === "rent";
-            },
+        },
+
+        returnDate: {
+          type: Date,
+
+          required: function () {
+            return this.orderType === "rent";
           },
-          remainingDays: {
-            type: Number,
-            required: function () {
-              return this.orderType === "rent";
-            },
+        },
+        remainingDays: {
+          type: Number,
+          required: function () {
+            return this.orderType === "rent";
+          },
+        },
+        isBack: {
+          type: Boolean,
+          default: false,
+          required: function () {
+            return this.orderType === "rent";
           },
         },
         product: {
@@ -83,7 +93,6 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
-
     paidAt: {
       type: Date,
     },
@@ -114,7 +123,6 @@ const orderSchema = new mongoose.Schema(
       type: Date,
     },
   },
-
   {
     timestamps: true,
   }
