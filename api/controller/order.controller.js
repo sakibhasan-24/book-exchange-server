@@ -156,8 +156,60 @@ export const getOrderByUser = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     if (req.user.isAdmin) {
-      const orders = await Order.find().populate("user", "name email");
-      return res.status(200).json({ orders, success: true });
+      // Fetch all orders and populate user details
+      const orders = await Order.find().populate(
+        "user",
+        "name email totalEarnings"
+      );
+
+      // Retrieve the admin user
+      const adminUser = await User.findById(req.user.id);
+      const allUsers = await User.find({ isAdmin: false });
+
+      // Calculate total earnings from all orders
+      const totalEarnings = orders.reduce(
+        (acc, order) => acc + Number(order.productPrice),
+        0
+      );
+      console.log(orders.map((i) => i.productPrice));
+
+      // Overwrite admin's total earnings with the newly calculated value
+      adminUser.totalEarnings = totalEarnings;
+
+      // Calculate profits (total earnings - expense)
+      adminUser.profits =
+        Number(adminUser.totalEarnings) - Number(adminUser.expense);
+
+      // Calculate profit percentage
+      let profitPercentage = 0;
+      if (Number(adminUser.totalEarnings) > 0) {
+        profitPercentage =
+          (Number(adminUser.profits) / Number(adminUser.totalEarnings)) * 100;
+      }
+
+      // Log the values for debugging
+      // console.log("profit", profitPercentage);
+      // console.log("expense", adminUser.expense);
+      // console.log("totalEarnings", adminUser.totalEarnings);
+      const shippedOrders = await Order.find({ isDelivered: false });
+      const deliveredOrders = await Order.find({ isDelivered: true });
+      // console.log(deliveredOrders);
+
+      // Save the updated admin user in the database
+      await adminUser.save();
+      console.log("shipped orders", shippedOrders);
+      console.log("delivered orders", deliveredOrders);
+
+      // Return the orders, success response, adminUser data, and profit percentage
+      return res.status(200).json({
+        orders,
+        success: true,
+        adminUser,
+        profitPercentage: profitPercentage.toFixed(2),
+        shippedOrders,
+        deliveredOrders,
+        allUsers,
+      });
     } else {
       return res.status(401).json({ message: "Unauthorized", success: false });
     }
@@ -450,7 +502,7 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
-      { deliveryStatus },
+      { deliveryStatus, isDelivered: true },
       { new: true }
     );
     // console.log(updatedOrder);

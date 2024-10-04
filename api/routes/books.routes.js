@@ -16,6 +16,7 @@ import {
   sendRentBookToStore,
   blockedUser,
   unBlockedUser,
+  getOverDueUsers,
 } from "../controller/books.controller.js";
 
 const router = express.Router();
@@ -35,4 +36,5 @@ router.get("/getAllRentBooks/:id", verifyToken, getAllRentBooks);
 router.put("/sentBookToStore/:id", verifyToken, sendRentBookToStore);
 router.put("/blockUser/:id", verifyToken, blockedUser);
 router.put("/unBlockUser/:id", verifyToken, unBlockedUser);
+router.get("/overDueUsers/:id", verifyToken, getOverDueUsers);
 export default router;

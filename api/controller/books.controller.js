@@ -5,6 +5,7 @@ dotenv.config();
 import { v4 as uuidv4 } from "uuid";
 import User from "../model/user.model.js";
 import Order from "../model/order.model.js";
+import calculatedAvgRating from "../../helper/calculateRatings.js";
 const store_id = process.env.STORE_ID;
 const store_password = process.env.STORE_PASS;
 const isLive = false;
@@ -37,10 +38,35 @@ export const createBooks = async (req, res) => {
 export const getAllBooks = async (req, res) => {
   try {
     const books = await Book.find({});
+    const notAcceptedBooks = await Book.find({ isAccepted: true });
+    const soldBooks = await Book.find({
+      bookStatus: "sell",
+    });
+    const calculateAvgRating = (reviews) => {
+      const totalRating = reviews.reduce(
+        (sum, review) => sum + review.rating,
+        0
+      );
+      return reviews.length > 0 ? totalRating / reviews.length : 0;
+    };
+
+    // Calculate average rating and filter top-rated books
+    const topRatedBooks = books
+      .map((book) => {
+        const averageRating = calculateAvgRating(book.bookReviews);
+        return {
+          ...book._doc,
+          averageRating,
+        };
+      })
+      .filter((book) => book.averageRating >= 3);
     return res.status(200).json({
       message: "Books fetched successfully",
       success: true,
       books: books,
+      notAcceptedBooks: notAcceptedBooks,
+      soldBooks: soldBooks,
+      topRatedBooks: topRatedBooks,
     });
   } catch (error) {
     console.log(error);
@@ -235,7 +261,9 @@ export const confirmedBook = async (req, res) => {
 
   // console.log(data);
   const user = await User.findById(book.bookOwner);
+  const adminUser = await User.findById(req.user.id);
   const profit = Number(user?.totalEarnings) + Number(req.body.data);
+  const expense = Number(adminUser?.expense) + Number(req.body.data);
 
   // console.log(user);
   const data = {
@@ -283,6 +311,16 @@ export const confirmedBook = async (req, res) => {
       {
         $set: {
           totalEarnings: profit,
+        },
+      }
+    );
+    await User.updateOne(
+      {
+        _id: req.user.id,
+      },
+      {
+        $set: {
+          expense,
         },
       }
     );
@@ -632,4 +670,59 @@ export const unBlockedUser = async (req, res) => {
   }
 
   // console.log();
+};
+
+export const getOverDueUsers = async (req, res) => {
+  if (req.user.isAdmin !== true) {
+    return res.status(401).json({
+      message: "You are not authorized to perform this action",
+      success: false,
+    });
+  }
+
+  // Get all users with the "user" role
+  const users = await User.find({ role: "user" }).lean();
+  const userIds = users.map((user) => user._id);
+
+  // Find all orders for these users
+  const orders = await Order.find({ user: { $in: userIds } })
+    .populate("user", "userEmail userName isRedAlert _id")
+    .lean();
+
+  console.log(orders);
+  // Get today's date
+  const today = new Date();
+
+  // Filter overdue items based on rent type and return date
+  const overdueItems = orders.flatMap(
+    (order) =>
+      order.orderItems
+        .filter(
+          (item) =>
+            item.orderType === "rent" &&
+            item.isBack === false &&
+            new Date(item.returnDate) < today
+        )
+        .map((item) => ({ user: order.user, item })) // Map user info with the item
+  );
+
+  // Extract unique user IDs of users with overdue rental books
+  const overdueUserIds = [...new Set(overdueItems.map(({ user }) => user._id))];
+
+  // Fetch the user details for those with overdue items
+  const overdueUsers = await User.find({ _id: { $in: overdueUserIds } }).lean();
+
+  // Return the information of overdue users
+  if (overdueUsers.length > 0) {
+    return res.status(200).json({
+      message: "Overdue users found",
+      success: true,
+      overdueUsers,
+    });
+  } else {
+    return res.status(200).json({
+      message: "No overdue users found",
+      success: true,
+    });
+  }
 };
