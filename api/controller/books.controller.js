@@ -198,7 +198,7 @@ export const getBookById = async (req, res) => {
 export const getAllType = async (req, res) => {
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
-    const limit = parseInt(req.query.limit) || 9;
+    const limit = parseInt(req.query.limit) || 3;
     const sort = req.query.order === "asc" ? 1 : -1;
     const books = await Book.find({
       ...(req.query.category && {
@@ -220,10 +220,11 @@ export const getAllType = async (req, res) => {
       }),
     })
       .sort({ updatedAt: sort })
-      .skip(startIndex)
+      .skip(startIndex * limit)
       .limit(limit);
     const totalBook = await Book.countDocuments();
 
+    // console.log("tot", totalBook);
     const now = new Date();
 
     const oneMonthAgo = new Date(
