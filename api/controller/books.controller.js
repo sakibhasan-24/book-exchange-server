@@ -50,7 +50,7 @@ export const getAllBooks = async (req, res) => {
       return reviews.length > 0 ? totalRating / reviews.length : 0;
     };
 
-    // Calculate average rating and filter top-rated books
+    // top rated books
     const topRatedBooks = books
       .map((book) => {
         const averageRating = calculateAvgRating(book.bookReviews);
@@ -244,6 +244,45 @@ export const getAllType = async (req, res) => {
     });
   } catch (error) {
     res.status(401).json({ message: "something went wrong", success: false });
+  }
+};
+// api for searcch
+
+export const getBooksByCategoryAndText = async (req, res) => {
+  try {
+    const { category, searchText } = req.query;
+    console.log(req.query);
+    const startIndex = parseInt(req.query.startIndex) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Create search criteria
+    const searchCriteria = {
+      ...(category && { category }), // If category is present, filter by it
+      ...(searchText && {
+        $or: [
+          { title: { $regex: searchText, $options: "i" } }, // Case-insensitive search by title
+          { address: { $regex: searchText, $options: "i" } }, // Case-insensitive search by address
+          { description: { $regex: searchText, $options: "i" } }, // Case-insensitive search by description
+        ],
+      }),
+    };
+
+    // Find books based on search criteria (all books if no filters are applied)
+    const books = await Book.find(searchCriteria)
+      .skip(startIndex * limit)
+      .limit(limit);
+
+    // Count total books based on search criteria (all books if no filters are applied)
+    const totalBooks = await Book.countDocuments(searchCriteria);
+
+    // Return the books and total count
+    res.status(200).json({
+      books,
+      totalBooks,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong", success: false });
   }
 };
 

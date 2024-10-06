@@ -17,11 +17,13 @@ import {
   blockedUser,
   unBlockedUser,
   getOverDueUsers,
+  getBooksByCategoryAndText,
 } from "../controller/books.controller.js";
 
 const router = express.Router();
 router.post("/create-book", verifyToken, createBooks);
 router.get("/get-all-books", getAllBooks);
+router.get("/getBookBySearch", getBooksByCategoryAndText);
 router.get("/get-all-books/:userId", verifyToken, getBooksForUser);
 router.get("/get-book/:bookId", getBookById);
 router.get("/all-type", getAllType);
