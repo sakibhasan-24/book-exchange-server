@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
     },
     isAdmin: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     isDeliveryPerson: {
       type: Boolean,
@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["user", "admin", "deliveryMan"],
-      default: "admin",
+      default: "user",
     },
     assignedOrders: [
       {
