@@ -18,6 +18,13 @@ export const createBooks = async (req, res) => {
       error: error,
     });
   }
+  const user = await User.findById({ _id: req.user.id });
+  if (user.isRedAlert) {
+    return res.status(403).json({
+      message: "You are blocked",
+      success: false,
+    });
+  }
   try {
     const book = await Book.create(req.body);
     return res.status(201).json({
@@ -119,6 +126,19 @@ export const deleteBook = async (req, res) => {
       success: false,
     });
   }
+  const user = await User.findById({ _id: req.user.id });
+  if (user.isRedAlert) {
+    return res.status(403).json({
+      message: "You are not allowed to delete this book",
+      success: false,
+    });
+  }
+  if (existingBook?.isAccepted) {
+    return res.status(403).json({
+      message: "You are not allowed to delete this book",
+      success: false,
+    });
+  }
   try {
     await Book.findByIdAndDelete(req.params.bookId);
     return res.status(200).json({
@@ -143,31 +163,39 @@ export const updateBook = async (req, res) => {
       success: false,
     });
   }
+  if (existingBook?.isAccepted) {
+    return res.status(403).json({
+      message: "You are not allowed to update this book",
+      success: false,
+    });
+  }
   if (existingBook.bookOwner.toString() !== req.user.id) {
     return res.status(403).json({
       message: "You are not allowed to update this book",
       success: false,
     });
   }
-  try {
-    const updatedBook = await Book.findByIdAndUpdate(
-      req.params.bookId,
-      req.body,
-      {
-        new: true,
-      }
-    );
-    return res.status(200).json({
-      message: "Book updated successfully",
-      success: true,
-      book: updatedBook,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-      success: false,
-      error: error,
-    });
+  if (req.user.isAdmin && existingBook?.isAccepted) {
+    try {
+      const updatedBook = await Book.findByIdAndUpdate(
+        req.params.bookId,
+        req.body,
+        {
+          new: true,
+        }
+      );
+      return res.status(200).json({
+        message: "Book updated successfully",
+        success: true,
+        book: updatedBook,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: "Internal Server Error",
+        success: false,
+        error: error,
+      });
+    }
   }
 };
 
@@ -370,8 +398,17 @@ export const confirmedBook = async (req, res) => {
 export const createReview = async (req, res) => {
   const { id } = req.params;
   const { rating, comment } = req.body;
-  console.log(req.body);
+  console.log("s", req.body);
   const userId = req.user.id;
+  const validUser = await User.findById(userId);
+  // console.log(validUser);
+  if (!validUser) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  if (validUser.isRedAlert) {
+    console.log("blocked User");
+    return res.status(404).json({ message: "You are blocked", success: false });
+  }
   try {
     const book = await Book.findById(id);
 
