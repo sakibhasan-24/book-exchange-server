@@ -163,19 +163,44 @@ export const updateBook = async (req, res) => {
       success: false,
     });
   }
-  if (existingBook?.isAccepted) {
+  if (existingBook?.isAccepted && req.user.isAdmin === false) {
     return res.status(403).json({
       message: "You are not allowed to update this book",
       success: false,
     });
   }
-  if (existingBook.bookOwner.toString() !== req.user.id) {
+  if (
+    existingBook.bookOwner.toString() !== req.user.id &&
+    req.user.isAdmin === false
+  ) {
     return res.status(403).json({
       message: "You are not allowed to update this book",
       success: false,
     });
   }
   if (req.user.isAdmin && existingBook?.isAccepted) {
+    try {
+      const updatedBook = await Book.findByIdAndUpdate(
+        req.params.bookId,
+        req.body,
+        {
+          new: true,
+        }
+      );
+      return res.status(200).json({
+        message: "Book updated successfully",
+        success: true,
+        book: updatedBook,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: "Internal Server Error",
+        success: false,
+        error: error,
+      });
+    }
+  }
+  if (!existingBook?.isAccepted && !req.user.isAdmin) {
     try {
       const updatedBook = await Book.findByIdAndUpdate(
         req.params.bookId,
