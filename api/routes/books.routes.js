@@ -18,12 +18,14 @@ import {
   unBlockedUser,
   getOverDueUsers,
   getBooksByCategoryAndText,
+  getLatestBooks,
 } from "../controller/books.controller.js";
 
 const router = express.Router();
 router.post("/create-book", verifyToken, createBooks);
 router.get("/get-all-books", getAllBooks);
 router.get("/getBookBySearch", getBooksByCategoryAndText);
+router.get("/latest", getLatestBooks);
 router.get("/get-all-books/:userId", verifyToken, getBooksForUser);
 router.get("/get-book/:bookId", getBookById);
 router.get("/all-type", getAllType);

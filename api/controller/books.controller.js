@@ -339,6 +339,16 @@ export const getBooksByCategoryAndText = async (req, res) => {
   }
 };
 
+export const getLatestBooks = async (req, res) => {
+  try {
+    const books = await Book.find().sort({ createdAt: -1 }).limit(5);
+    res.status(200).json({ message: "Latest Books", success: true, books });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong", success: false });
+  }
+};
+
 export const confirmedBook = async (req, res) => {
   // console.log("de", req.body.data);
   if (!req.user.isAdmin) {
