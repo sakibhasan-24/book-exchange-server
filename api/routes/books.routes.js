@@ -19,6 +19,8 @@ import {
   getOverDueUsers,
   getBooksByCategoryAndText,
   getLatestBooks,
+  handleAdminSuccessPayment,
+  handleAdminFailedPayment,
 } from "../controller/books.controller.js";
 
 const router = express.Router();
@@ -32,6 +34,8 @@ router.get("/all-type", getAllType);
 router.delete("/delete-book/:bookId", verifyToken, deleteBook);
 router.put("/update-book/:bookId", verifyToken, updateBook);
 router.put("/confirmedBook/:id", verifyToken, confirmedBook);
+router.post("/success", verifyToken, handleAdminSuccessPayment);
+router.post("/failed", handleAdminFailedPayment);
 // review
 router.put("/review/:id", verifyToken, createReview);
 router.get("/review/:id", getReview);

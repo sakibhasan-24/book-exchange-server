@@ -9,6 +9,15 @@ import calculatedAvgRating from "../../helper/calculateRatings.js";
 const store_id = process.env.STORE_ID;
 const store_password = process.env.STORE_PASS;
 const isLive = false;
+const clientURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:5173"
+    : "https://book-management-57c93.web.app";
+
+const serverURL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:5000"
+    : "https://book-exchange-server.vercel.app";
 export const createBooks = async (req, res) => {
   if (req.user.isAdmin) {
     // can't create a book
@@ -43,6 +52,7 @@ export const createBooks = async (req, res) => {
 };
 
 export const getAllBooks = async (req, res) => {
+  // console.log("NODE_ENV:", process.env.NODE_ENV);
   try {
     const books = await Book.find({});
     const notAcceptedBooks = await Book.find({ isAccepted: true });
@@ -373,8 +383,8 @@ export const confirmedBook = async (req, res) => {
     total_amount: req.body.data,
     currency: "BDT",
     tran_id,
-    success_url: `http://localhost:5173`, // Redirect here on success
-    fail_url: `http://localhost:5173`, // Redirect here on failure
+    success_url: `${serverURL}/api/books/success?book_id=${book._id}&profit=${profit}&expense=${expense}&amount=${req.body.data}`,
+    fail_url: `${serverURL}/api/books/failed?book_id=${book._id}`,
     cancel_url: `http://localhost:5173`, // Optional: handle cancellation
     ipn_url: "http://localhost:3030/ipn",
     shipping_method: "Courier",
@@ -395,39 +405,96 @@ export const confirmedBook = async (req, res) => {
     ship_country: "Bangladesh",
   };
   const sslcz = new SSLCommerzPayment(store_id, store_password, isLive);
-  // console.log(sslcz);
+  console.log(data?.success_url);
   const apiResponse = await sslcz.init(data);
   // console.log(apiResponse);
   let GatewayPageURL = apiResponse.GatewayPageURL;
+  console.log(GatewayPageURL);
   res.json(GatewayPageURL);
-  if (apiResponse.status === "SUCCESS") {
-    await Book.updateOne(
-      { _id: req.params.id },
-      {
-        $set: {
-          isAccepted: true,
-        },
-      }
-    );
-    await User.updateOne(
-      { _id: book.bookOwner },
-      {
-        $set: {
-          totalEarnings: profit,
-        },
-      }
-    );
-    await User.updateOne(
-      {
-        _id: req.user.id,
-      },
-      {
-        $set: {
-          expense,
-        },
-      }
-    );
+  // if (apiResponse.status === "SUCCESS") {
+  //   await Book.updateOne(
+  //     { _id: req.params.id },
+  //     {
+  //       $set: {
+  //         isAccepted: true,
+  //       },
+  //     }
+  //   );
+  //   await User.updateOne(
+  //     { _id: book.bookOwner },
+  //     {
+  //       $set: {
+  //         totalEarnings: profit,
+  //       },
+  //     }
+  //   );
+  //   await User.updateOne(
+  //     {
+  //       _id: req.user.id,
+  //     },
+  //     {
+  //       $set: {
+  //         expense,
+  //       },
+  //     }
+  //   );
+  // }
+};
+export const handleAdminSuccessPayment = async (req, res) => {
+  const book_id = req.query.book_id;
+  const profit = Number(req.query.profit); // Ensure profit is a number
+  const expense = Number(req.query.expense); // Ensure expense is a number
+  const amount = Number(req.query.amount); // Ensure amount is a number
+  console.log(profit, expense, amount);
+
+  const book = await Book.findById(book_id);
+  if (!book) {
+    return res.status(404).json({ message: "Book not found" });
   }
+
+  const user = await User.findById(book.bookOwner);
+  const adminUser = await User.findById(req.user.id);
+
+  console.log(user, adminUser, profit, expense);
+
+  // Update book status to accepted
+  await Book.updateOne(
+    { _id: book_id }, // Use book_id instead of req.params.id
+    {
+      $set: {
+        isAccepted: true,
+      },
+    }
+  );
+
+  // Update the user's total earnings
+  await User.updateOne(
+    { _id: book.bookOwner },
+    {
+      $set: {
+        totalEarnings: profit,
+      },
+    }
+  );
+
+  // Update the admin user's expense
+  await User.updateOne(
+    { _id: req.user.id },
+    {
+      $set: {
+        expense,
+      },
+    }
+  );
+
+  console.log(book);
+
+  // Redirect to the book details page after updates
+  return res.redirect(`${clientURL}/book/${book._id}`);
+};
+
+export const handleAdminFailedPayment = async (req, res) => {
+  return res.redirect(`${clientURL}/book/${req.query.book_id}}`);
 };
 
 export const createReview = async (req, res) => {

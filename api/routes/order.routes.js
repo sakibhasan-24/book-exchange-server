@@ -9,6 +9,8 @@ import {
   getDeliveryManProducts,
   getOrderById,
   getOrderByUser,
+  handlePaymentFailed,
+  handlePaymentSuccess,
   updateOrderStatus,
 } from "../controller/order.controller.js";
 
@@ -16,6 +18,9 @@ const router = express.Router();
 router.post("/createOrders", verifyToken, createOrders);
 router.get("/getorder/:id", verifyToken, getOrderById);
 router.put("/createPayment/:id", verifyToken, createPayment);
+router.post("/success", handlePaymentSuccess);
+router.post("/failed", handlePaymentFailed);
+// router.post("/success/:tran_id", getSuc);
 router.get("/getOrdersByUserId/:id", verifyToken, getOrderByUser);
 router.get("/getAllOrders", verifyToken, getAllOrders);
 router.put("/assignDeliveryMan", verifyToken, assignDeliveryMan);
