@@ -405,11 +405,11 @@ export const confirmedBook = async (req, res) => {
     ship_country: "Bangladesh",
   };
   const sslcz = new SSLCommerzPayment(store_id, store_password, isLive);
-  console.log(data?.success_url);
+  // console.log(data?.success_url);
   const apiResponse = await sslcz.init(data);
-  // console.log(apiResponse);
+  console.log(apiResponse);
   let GatewayPageURL = apiResponse.GatewayPageURL;
-  console.log(GatewayPageURL);
+  // console.log(GatewayPageURL);
   res.json(GatewayPageURL);
   // if (apiResponse.status === "SUCCESS") {
   //   await Book.updateOne(

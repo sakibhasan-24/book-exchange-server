@@ -180,7 +180,7 @@ export const getAllOrders = async (req, res) => {
         (acc, order) => acc + Number(order.productPrice),
         0
       );
-      console.log(orders.map((i) => i.productPrice));
+      // console.log(orders.map((i) => i.productPrice));
 
       // Overwrite admin's total earnings with the newly calculated value
       adminUser.totalEarnings = totalEarnings;
@@ -382,23 +382,37 @@ export const createPayment = async (req, res) => {
   }
 };
 export const handlePaymentSuccess = async (req, res) => {
-  const tran_id = req.query.tran_id; // Access the val_id from the query parameters
-
+  const tran_id = req.query.tran_id;
   // console.log("handlePaymentSuccess", tran_id);
   try {
     const order = await Order.findOne({ transactionId: tran_id });
-    console.log("order", order);
+
+    // console.log(order);
+    const books = await Book.find({
+      _id: { $in: order.orderItems.map((i) => i.product) },
+    });
+    console.log("books", books);
     if (!order) {
       return res
         .status(404)
         .json({ message: "Order not found", success: false });
     }
 
+    await Promise.all(
+      order.orderItems.map(async (item) => {
+        console.log("uiii", item);
+        await Book.updateOne(
+          { _id: item.product },
+          { $set: { bookStatus: item.orderType, isAvailable: false } }
+        );
+      })
+    );
     const orderUpdate = await Order.findByIdAndUpdate(
       order._id,
       { isPaid: true, paidAt: Date.now(), transactionId: tran_id },
       { new: true }
     );
+    console.log(order);
 
     return res.redirect(`${clientURL}/order/${order._id}`);
   } catch (error) {
