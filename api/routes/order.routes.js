@@ -5,6 +5,7 @@ import {
   assignDeliveryManProduct,
   createOrders,
   createPayment,
+  deleteOrder,
   getAllOrders,
   getDeliveryManProducts,
   getOrderById,
@@ -27,6 +28,7 @@ router.put("/assignDeliveryMan", verifyToken, assignDeliveryMan);
 router.put("/assignDeliveryManProduct", verifyToken, assignDeliveryManProduct);
 router.get("/getDeliveryManProducts/:id", verifyToken, getDeliveryManProducts);
 router.put("/updateOrderStatus/:id", verifyToken, updateOrderStatus);
+router.delete("/deleteOrder/:id", verifyToken, deleteOrder);
 // router.post("/order/:tran_id", verifyToken, successPayment);
 // router.post("/successPayment/:tran_id", successPayment);
 export default router;

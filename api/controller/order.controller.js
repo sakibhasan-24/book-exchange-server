@@ -196,7 +196,6 @@ export const getAllOrders = async (req, res) => {
           (Number(adminUser.profits) / Number(adminUser.totalEarnings)) * 100;
       }
 
-      // Log the values for debugging
       // console.log("profit", profitPercentage);
       // console.log("expense", adminUser.expense);
       // console.log("totalEarnings", adminUser.totalEarnings);
@@ -391,16 +390,23 @@ export const handlePaymentSuccess = async (req, res) => {
     const books = await Book.find({
       _id: { $in: order.orderItems.map((i) => i.product) },
     });
-    console.log("books", books);
+    // console.log("books", books);
     if (!order) {
       return res
         .status(404)
         .json({ message: "Order not found", success: false });
     }
 
+    const isAnySoldOrRent = books.some(
+      (book) => book.bookStatus === "sell" || book.bookStatus === "rent"
+    );
+    // console.log(isAnySoldOrRent);
+    if (isAnySoldOrRent) {
+      return res.redirect(`${clientURL}/order/${order._id}`);
+    }
     await Promise.all(
       order.orderItems.map(async (item) => {
-        console.log("uiii", item);
+        // console.log("uiii", item);-
         await Book.updateOne(
           { _id: item.product },
           { $set: { bookStatus: item.orderType, isAvailable: false } }
@@ -446,44 +452,25 @@ export const handlePaymentFailed = async (req, res) => {
   }
 };
 
-// export const handlePaymentSuccess = async (req, res) => {
-//   const tran_id = req.params.tran_id;
-
-//   console.log("handlePaymentSuccess");
-//   try {
-//     const order = await Order.findOne({ transactionId: tran_id });
-//     // console.log("order", order);
-//     if (!order) {
-//       return res
-//         .status(404)
-//         .json({ message: "Order not found", success: false });
-//     }
-
-//     // Verify payment with SSLCommerz
-//     const sslcz = new SSLCommerzPayment(store_id, store_password, isLive);
-//     console.log("sslcz", sslcz);
-//     const paymentResponse = await sslcz.validate({ val_id: tran_id });
-//     console.log("paymentResponse", paymentResponse);
-
-//     if (paymentResponse?.status === "VALID") {
-//       // Update order to mark it as paid
-//       order.isPaid = true;
-//       order.paidAt = Date.now();
-//       order.transactionId = tran_id;
-//       await order.save();
-
-//       // Redirect to your success page
-//       return res.redirect(`http://localhost:5173/order/${order._id}`);
-//     } else {
-//       return res
-//         .status(400)
-//         .json({ message: "Payment validation failed", success: false });
-//     }
-//   } catch (error) {
-//     console.error("Error validating payment:", error);
-//     return res.status(500).json({ message: error.message, success: false });
-//   }
-// };
+export const deleteOrder = async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  // console.log(req.body);
+  // console.log(id);
+  if (req.user.id !== userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  try {
+    const order = await Order.findByIdAndDelete(id);
+    return res
+      .status(200)
+      .json({ message: "Order deleted successfully", success: true });
+  } catch {
+    return res
+      .status(401)
+      .json({ message: "Something went wrong", success: false });
+  }
+};
 
 export const assignDeliveryMan = async (req, res) => {
   const { orderId, deliveryManId } = req.body;

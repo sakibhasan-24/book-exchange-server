@@ -710,23 +710,32 @@ export const getAllRentBooks = async (req, res) => {
 };
 
 export const sendRentBookToStore = async (req, res) => {
-  const { id } = req.params; // Book ID
-  console.log("param"); //3a
-  const { user } = req.body; // User ID
-  console.log("body", req.body);
+  const { id } = req.params;
+  // console.log("param");
+  const { user } = req.body;
+  // console.log("body", req.body);
   const userInfo = await User.findById({ _id: user });
-  // console.log(userInfo);
+
   const bookFromId = await Book.findById({ _id: id });
 
+  console.log("books", bookFromId);
+  if (bookFromId.bookStatus === "available") {
+    console.log("Book is Available");
+    return res
+      .status(400)
+      .json({ message: "Book is available", success: false });
+  }
   if (bookFromId.bookStatus === "rent") {
     console.log("Book is Rented");
     // console.log(bookFromId);
     const updatedBook = await Book.findByIdAndUpdate(
       id,
-      { bookStatus: "available" }, // Update: Set the new status
-      { new: true } // Return the updated document
+      { bookStatus: "available" },
+      { new: true }
     );
+
     const order = await Order.find({ user }).lean();
+    // console.log("s", order);
     const rentBooks = order
       .flatMap((order) => order.orderItems)
       .find(
@@ -735,16 +744,17 @@ export const sendRentBookToStore = async (req, res) => {
           item.product.toString() === bookFromId._id.toString()
       );
 
-    console.log("all order for user", rentBooks.product);
+    console.log("all order for user", rentBooks);
 
     if (rentBooks?.isBack === false) {
-      console.log(rentBooks);
+      // console.log(rentBooks);
 
       // Find the order that contains the specific order item
       const order = await Order.findOne({
         "orderItems._id": rentBooks._id, // Match the order item by its ID
       });
 
+      console.log(order);
       if (!order) {
         return res
           .status(404)
@@ -757,7 +767,7 @@ export const sendRentBookToStore = async (req, res) => {
         { $set: { "orderItems.$.isBack": true } } // Update isBack to true
       );
 
-      console.log("Order updated:", updatedOrder);
+      // console.log("Order updated:", updatedOrder);
 
       return res
         .status(200)
