@@ -497,20 +497,96 @@ export const handleAdminFailedPayment = async (req, res) => {
   return res.redirect(`${clientURL}/book/${req.query.book_id}}`);
 };
 
+// export const createReview = async (req, res) => {
+//   const { id } = req.params;
+//   const { rating, comment } = req.body;
+//   console.log("s", req.body);
+//   const userId = req.user.id;
+//   const validUser = await User.findById(userId);
+//   // console.log(validUser);
+//   if (!validUser) {
+//     return res.status(404).json({ message: "User not found" });
+//   }
+//   if (validUser.isRedAlert) {
+//     console.log("blocked User");
+//     return res.status(404).json({ message: "You are blocked", success: false });
+//   }
+//   try {
+//     const book = await Book.findById(id);
+
+//     if (!book) {
+//       return res
+//         .status(404)
+//         .json({ message: "Book not found", success: false });
+//     }
+
+//     if (book.bookOwner.toString() === userId.toString()) {
+//       return res
+//         .status(403)
+//         .json({ message: "You can't review your own book", success: false });
+//     }
+
+//     const alreadyReviewed = book.bookReviews.find(
+//       (review) => review.user.toString() === userId.toString()
+//     );
+
+//     if (alreadyReviewed) {
+//       await Book.updateOne(
+//         { _id: id, "bookReviews.user": userId },
+//         {
+//           $set: {
+//             "bookReviews.$.rating": rating,
+//             "bookReviews.$.comment": comment,
+//           },
+//         }
+//       );
+//       const totalReviews = book.bookReviews.length;
+//       const averageRating =
+//         book.bookReviews.reduce((acc, item) => item.rating + acc, 0) /
+//         totalReviews;
+//       const finalAverageRating = averageRating.toFixed(2);
+//       return res.status(200).json({
+//         message: "Review updated",
+//         success: true,
+//         totalReviews: totalReviews,
+//         finalAverageRating: finalAverageRating,
+//       });
+//     } else {
+//       const newReview = {
+//         user: userId,
+//         rating: Number(rating),
+//         comment: comment,
+//       };
+
+//       book.bookReviews.push(newReview);
+
+//       await book.save();
+
+//       return res.status(201).json({
+//         message: "Review added",
+//         success: true,
+//         totalReviews: totalReviews,
+//         finalAverageRating: finalAverageRating,
+//       });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: "Server error", success: false });
+//   }
+// };
 export const createReview = async (req, res) => {
   const { id } = req.params;
   const { rating, comment } = req.body;
-  console.log("s", req.body);
   const userId = req.user.id;
+
   const validUser = await User.findById(userId);
-  // console.log(validUser);
   if (!validUser) {
     return res.status(404).json({ message: "User not found" });
   }
   if (validUser.isRedAlert) {
-    console.log("blocked User");
     return res.status(404).json({ message: "You are blocked", success: false });
   }
+
   try {
     const book = await Book.findById(id);
 
@@ -540,11 +616,13 @@ export const createReview = async (req, res) => {
           },
         }
       );
+
       const totalReviews = book.bookReviews.length;
       const averageRating =
         book.bookReviews.reduce((acc, item) => item.rating + acc, 0) /
         totalReviews;
       const finalAverageRating = averageRating.toFixed(2);
+
       return res.status(200).json({
         message: "Review updated",
         success: true,
@@ -559,8 +637,14 @@ export const createReview = async (req, res) => {
       };
 
       book.bookReviews.push(newReview);
-
       await book.save();
+
+      // Recalculate total reviews and average rating after adding the new review
+      const totalReviews = book.bookReviews.length;
+      const averageRating =
+        book.bookReviews.reduce((acc, item) => item.rating + acc, 0) /
+        totalReviews;
+      const finalAverageRating = averageRating.toFixed(2);
 
       return res.status(201).json({
         message: "Review added",
