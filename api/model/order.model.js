@@ -121,6 +121,7 @@ const orderSchema = new mongoose.Schema(
     },
     deliveredAt: {
       type: Date,
+      default: null,
     },
   },
   {

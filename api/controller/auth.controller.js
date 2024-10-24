@@ -3,8 +3,15 @@ import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 export const signUpUser = async (req, res) => {
   console.log(req.body);
-  const { userName, userEmail, userPassword, profilePicture, isAdmin } =
-    req.body;
+  const {
+    userName,
+    userEmail,
+    userPassword,
+    profilePicture,
+    isAdmin,
+    role,
+    isDeliveryPerson,
+  } = req.body;
   if (!userName || !userEmail || !userPassword) {
     return res
       .status(400)
@@ -14,7 +21,7 @@ export const signUpUser = async (req, res) => {
   // Check if user already exists
   //   console.log(userEmail);
   const userExists = await User.findOne({ userEmail });
-  console.log("e", userExists);
+  // console.log("e", userExists);
   if (userExists) {
     return res
       .status(400)
@@ -33,6 +40,10 @@ export const signUpUser = async (req, res) => {
     password: hashedPassword,
     image: profileImage,
     isAdmin,
+    role: role ? role : User.schema.paths.role.default(),
+    isDeliveryPerson: isDeliveryPerson
+      ? isDeliveryPerson
+      : User.schema.paths.isDeliveryPerson.default(),
   });
   //   console.log(newUser);
   try {

@@ -113,6 +113,10 @@ const bookSchema = new mongoose.Schema(
       enum: ["available", "rent", "sell"],
       default: "available",
     },
+    numberOfTimesRent: {
+      type: Number,
+      default: 0,
+    },
     isAccepted: {
       type: Boolean,
       default: false,

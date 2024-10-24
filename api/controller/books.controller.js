@@ -76,7 +76,8 @@ export const getAllBooks = async (req, res) => {
           averageRating,
         };
       })
-      .filter((book) => book.averageRating >= 3);
+      .filter((book) => book.averageRating >= 3)
+      .sort((a, b) => b.averageRating - a.averageRating);
     return res.status(200).json({
       message: "Books fetched successfully",
       success: true,
@@ -115,7 +116,6 @@ export const getBooksForUser = async (req, res) => {
     return res.status(403).json({
       message: "You are not allowed to get books for this user",
       success: false,
-      error: error,
     });
   }
 };
@@ -313,32 +313,26 @@ export const getAllType = async (req, res) => {
 
 export const getBooksByCategoryAndText = async (req, res) => {
   try {
-    const { category, searchText } = req.query;
+    const { category, searchTerm } = req.query;
     console.log(req.query);
     const startIndex = parseInt(req.query.startIndex) || 0;
     const limit = parseInt(req.query.limit) || 10;
 
     // Create search criteria
     const searchCriteria = {
-      ...(category && { category }), // If category is present, filter by it
-      ...(searchText && {
+      ...(category && { category }),
+      ...(searchTerm && {
         $or: [
-          { title: { $regex: searchText, $options: "i" } }, // Case-insensitive search by title
-          { address: { $regex: searchText, $options: "i" } }, // Case-insensitive search by address
-          { description: { $regex: searchText, $options: "i" } }, // Case-insensitive search by description
+          { title: { $regex: searchTerm, $options: "i" } },
+          // { address: { $regex: searchText, $options: "i" } },
+          // { description: { $regex: searchText, $options: "i" } },
         ],
       }),
     };
-
-    // Find books based on search criteria (all books if no filters are applied)
     const books = await Book.find(searchCriteria)
       .skip(startIndex * limit)
       .limit(limit);
-
-    // Count total books based on search criteria (all books if no filters are applied)
     const totalBooks = await Book.countDocuments(searchCriteria);
-
-    // Return the books and total count
     res.status(200).json({
       books,
       totalBooks,
@@ -442,10 +436,11 @@ export const confirmedBook = async (req, res) => {
 };
 export const handleAdminSuccessPayment = async (req, res) => {
   const book_id = req.query.book_id;
-  const profit = Number(req.query.profit); // Ensure profit is a number
-  const expense = Number(req.query.expense); // Ensure expense is a number
-  const amount = Number(req.query.amount); // Ensure amount is a number
-  console.log(profit, expense, amount);
+  const profit = Number(req.query.profit);
+  const expense = Number(req.query.expense);
+  const amount = Number(req.query.amount);
+  // const adminTotalEarnings=await
+  // console.log(profit, expense, amount);
 
   const book = await Book.findById(book_id);
   if (!book) {
@@ -638,8 +633,6 @@ export const createReview = async (req, res) => {
 
       book.bookReviews.push(newReview);
       await book.save();
-
-      // Recalculate total reviews and average rating after adding the new review
       const totalReviews = book.bookReviews.length;
       const averageRating =
         book.bookReviews.reduce((acc, item) => item.rating + acc, 0) /
@@ -717,6 +710,119 @@ export const getAllReview = async (req, res) => {
 };
 
 // get rent books
+// export const getAllRentBooks = async (req, res) => {
+//   const { id } = req.params;
+//   const user = await User.findById({ _id: id });
+//   if (!user) {
+//     return res.status(404).json({ message: "User not found", success: false });
+//   }
+
+//   try {
+//     if (user?.isAdmin) {
+//       // Use .lean() to get plain JavaScript objects
+//       const os = await Order.find({})
+//         .populate("user", "userName userEmail") // Populate the user field if needed
+//         .populate({
+//           path: "orderItems.bookOwner", // Populate the bookOwner field in orderItems
+//           select: "userName", // Select only the userName field
+//         });
+
+//       console.log("Orders with populated bookOwner:", os);
+
+//       // Extract bookOwner information from orderItems
+//       const bookOwners = os.flatMap(
+//         (order) => order.orderItems.map((item) => item.bookOwner) // Access bookOwner for each orderItem
+//       );
+
+//       // Now bookOwners will contain an array of bookOwner objects
+//       console.log("Book Owners:", bookOwners);
+
+//       // cbsbcbs
+//       const books = await Order.find({})
+//         .populate("user", "userName userEmail  isRedAlert image ")
+//         .populate("orderItems.bookOwner", "userName userEmail")
+//         .lean();
+//       console.log("book", books);
+//       if (!books || books.length === 0) {
+//         return res
+//           .status(404)
+//           .json({ message: "No books found", success: false });
+//       }
+
+//       const rentBooks = books.flatMap((book) =>
+//         book.orderItems
+//           .filter((item) => item.orderType === "rent")
+//           .map((item) => ({
+//             ...item,
+//             user: book.user,
+//             bookCreator: item.bookOwner.userName,
+//           }))
+//       );
+//       const modifyReturnedDate = await Order.find({
+//         isPaid: true,
+//         deliveryStatus: "Delivered",
+//       });
+
+//       // console.log("ren", rentBooks);
+//       if (!rentBooks || rentBooks.length === 0) {
+//         return res
+//           .status(404)
+//           .json({ message: "No rent books found", success: false });
+//       }
+
+//       return res.status(200).json({
+//         message: "All rent books",
+//         success: true,
+//         rentBooks,
+//         modifyReturnedDate,
+//       });
+//     }
+
+//     // For regular users
+//     const order = await Order.find({ user: id })
+//       .populate("user", "userName userEmail isRedAlert image")
+//       .lean();
+//     // console.log("s", order);
+//     const modifyReturnedDate = await Order.find({
+//       isPaid: true,
+//       deliveryStatus: "Delivered",
+//     });
+
+//     console.log("m", modifyReturnedDate);
+
+//     if (!order || order.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ message: "No order found", success: false });
+//     }
+
+//     const rentBooks = order.flatMap((book) =>
+//       book.orderItems
+//         .filter((item) => item.orderType === "rent")
+//         .map((item) => ({
+//           ...item,
+//           user: book.user, // Attach user data to the book item
+//           bookCreator: item.bookOwner.userName,
+//         }))
+//     );
+
+//     console.log("ree", rentBooks);
+//     if (!rentBooks || rentBooks.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ message: "No rent books found", success: false });
+//     }
+
+//     return res.status(200).json({
+//       message: "All rent books",
+//       success: true,
+//       rentBooks,
+//       modifyReturnedDate,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ message: error.message, success: false });
+//   }
+// };
 export const getAllRentBooks = async (req, res) => {
   const { id } = req.params;
   const user = await User.findById({ _id: id });
@@ -726,24 +832,21 @@ export const getAllRentBooks = async (req, res) => {
 
   try {
     if (user?.isAdmin) {
-      // Use .lean() to get plain JavaScript objects
       const books = await Order.find({})
-        .populate("user", "userName userEmail  isRedAlert image")
+        .populate("user", "userName userEmail isRedAlert image")
+        .populate({
+          path: "orderItems.bookOwner",
+          select: "userName userEmail",
+        })
         .lean();
-      // console.log("book", books);
-
-      if (!books || books.length === 0) {
-        return res
-          .status(404)
-          .json({ message: "No books found", success: false });
-      }
 
       const rentBooks = books.flatMap((book) =>
         book.orderItems
           .filter((item) => item.orderType === "rent")
           .map((item) => ({
             ...item,
-            user: book.user, // Attach user data to the book item
+            user: book.user,
+            bookOwner: item.bookOwner, // Include the populated bookOwner
           }))
       );
 
@@ -753,29 +856,30 @@ export const getAllRentBooks = async (req, res) => {
           .json({ message: "No rent books found", success: false });
       }
 
-      return res
-        .status(200)
-        .json({ message: "All rent books", success: true, rentBooks });
+      // console.log("reeee", rentBooks.length);
+      return res.status(200).json({
+        message: "All rent books",
+        success: true,
+        rentBooks,
+      });
     }
 
     // For regular users
     const order = await Order.find({ user: id })
       .populate("user", "userName userEmail isRedAlert image")
+      .populate({
+        path: "orderItems.bookOwner",
+        select: "userName userEmail",
+      })
       .lean();
-    // console.log("s", order);
-
-    if (!order || order.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No order found", success: false });
-    }
 
     const rentBooks = order.flatMap((book) =>
       book.orderItems
         .filter((item) => item.orderType === "rent")
         .map((item) => ({
           ...item,
-          user: book.user, // Attach user data to the book item
+          user: book.user,
+          bookOwner: item.bookOwner,
         }))
     );
 
@@ -785,9 +889,11 @@ export const getAllRentBooks = async (req, res) => {
         .json({ message: "No rent books found", success: false });
     }
 
-    return res
-      .status(200)
-      .json({ message: "All rent books", success: true, rentBooks });
+    return res.status(200).json({
+      message: "All rent books",
+      success: true,
+      rentBooks,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message, success: false });
   }
@@ -873,7 +979,7 @@ export const blockedUser = async (req, res) => {
   }
 
   const { id } = req.params;
-  // console.log(id);
+  console.log("sss", id);
   const orders = await Order.find({ user: id }).lean();
   // console.log("s", orders);
   if (!orders) {
@@ -885,7 +991,7 @@ export const blockedUser = async (req, res) => {
   const isValidForBlock = allOrderItems.filter(
     (orderItem) => orderItem.isBack === false
   );
-  // console.log("isValidForBlock", isValidForBlock);
+  //    console  . log   ("isValidForBlock", isValidForBlock);
   if (isValidForBlock.length > 0) {
     const today = new Date();
 
@@ -917,7 +1023,7 @@ export const unBlockedUser = async (req, res) => {
   }
 
   const { id } = req.params;
-  console.log(id);
+  console.log("block", id);
   // const orders = await Order.find({ user: id }).lean();
   // // console.log("s", orders);
   // if (!orders) {
@@ -945,6 +1051,51 @@ export const unBlockedUser = async (req, res) => {
   // console.log();
 };
 
+export const disabledDeliveryMan = async (req, res) => {
+  if (req.user.isAdmin !== true) {
+    return res.status(401).json({
+      message: "You are not authorized to perform this action",
+      success: false,
+    });
+  }
+  const { id } = req.body;
+  console.log(id);
+  const user = await User.findById({ _id: id });
+  console.log(user);
+  if (user.assignedOrders.length !== 0) {
+    return res.status(404).json({
+      message: "Currently this action will not take",
+      success: false,
+    });
+  }
+  if (user.role === "deliveryMan") {
+    user.isRedAlert = true;
+    await user.save();
+    return res.status(200).json({
+      message: "Delivery Man is disabled",
+      success: true,
+    });
+  }
+};
+export const enableDeliveryMan = async (req, res) => {
+  if (req.user.isAdmin !== true) {
+    return res.status(401).json({
+      message: "You are not authorized to perform this action",
+      success: false,
+    });
+  }
+  const { id } = req.body;
+  const user = await User.findById({ _id: id });
+  if (user.role === "deliveryMan") {
+    user.isRedAlert = false;
+    await user.save();
+    return res.status(200).json({
+      message: "Delivery Man is enabled",
+      success: true,
+    });
+  }
+};
+
 export const getOverDueUsers = async (req, res) => {
   if (req.user.isAdmin !== true) {
     return res.status(401).json({
@@ -962,7 +1113,7 @@ export const getOverDueUsers = async (req, res) => {
     .populate("user", "userEmail userName isRedAlert _id")
     .lean();
 
-  console.log(orders);
+  // console.log(orders);
   // Get today's date
   const today = new Date();
 
@@ -987,6 +1138,7 @@ export const getOverDueUsers = async (req, res) => {
 
   // Return the information of overdue users
   if (overdueUsers.length > 0) {
+    console.log(overdueUsers);
     return res.status(200).json({
       message: "Overdue users found",
       success: true,
@@ -995,7 +1147,7 @@ export const getOverDueUsers = async (req, res) => {
   } else {
     return res.status(200).json({
       message: "No overdue users found",
-      success: true,
+      success: false,
     });
   }
 };

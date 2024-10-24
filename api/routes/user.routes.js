@@ -9,7 +9,12 @@ import {
   acceptedRequest,
   rejectedRequest,
   getAllDeliveryMan,
+  getSystemSummary,
 } from "../controller/user.controller.js";
+import {
+  disabledDeliveryMan,
+  enableDeliveryMan,
+} from "../controller/books.controller.js";
 const router = express.Router();
 
 router.put("/update/:userId", verifyToken, userUpdate);
@@ -20,6 +25,9 @@ router.put("/accept/:userId", verifyToken, acceptedRequest);
 router.put("/reject/:userId", verifyToken, rejectedRequest);
 router.delete("/delete/:userId", verifyToken, userDelete);
 router.get("/getDeliveryMan", getAllDeliveryMan);
+router.put("/disabledDeliveryMan", verifyToken, disabledDeliveryMan);
+router.put("/enableDeliveryMan", verifyToken, enableDeliveryMan);
 
+router.get("/getSystem", verifyToken, getSystemSummary);
 // router.get("/get-user/:userId", verifyToken, getUser);
 export default router;

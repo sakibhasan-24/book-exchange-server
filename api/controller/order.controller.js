@@ -105,10 +105,13 @@ export const createOrders = async (req, res) => {
 
         const today = new Date();
         const returnDate = new Date(item.returnDate);
-
+        returnDate.setDate(returnDate.getDate());
+        // console.log("r", new Date(returnDate).toLocaleString());
         const diffTime = returnDate.getTime() - today.getTime();
+        // console.log(diffTime);
         const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+        // console.log(remainingDays);
         orderItem.remainingDays = remainingDays;
       }
 
@@ -125,6 +128,7 @@ export const createOrders = async (req, res) => {
       user: req.user.id,
     });
 
+    // console.log("d", order);
     const createdOrder = await order.save();
     return res.status(201).json({ createdOrder, success: true });
   } catch (error) {
@@ -186,8 +190,8 @@ export const getAllOrders = async (req, res) => {
       adminUser.totalEarnings = totalEarnings;
 
       // Calculate profits (total earnings - expense)
-      adminUser.profits =
-        Number(adminUser.totalEarnings) - Number(adminUser.expense);
+      // console.log(totalEarnings - adminUser?.expense);
+      adminUser.profits = Number(totalEarnings) - Number(adminUser.expense);
 
       // Calculate profit percentage
       let profitPercentage = 0;
@@ -404,13 +408,31 @@ export const handlePaymentSuccess = async (req, res) => {
     if (isAnySoldOrRent) {
       return res.redirect(`${clientURL}/order/${order._id}`);
     }
+    // await Promise.all(
+    //   order.orderItems.map(async (item) => {
+    //     // console.log("uiii", item);-
+    //     await Book.updateOne(
+    //       { _id: item.product },
+    //       { $set: { bookStatus: item.orderType, isAvailable: false } }
+    //     );
+    //   })
+    // );
     await Promise.all(
       order.orderItems.map(async (item) => {
-        // console.log("uiii", item);-
-        await Book.updateOne(
-          { _id: item.product },
-          { $set: { bookStatus: item.orderType, isAvailable: false } }
-        );
+        if (item.orderType === "rent") {
+          await Book.updateOne(
+            { _id: item.product },
+            {
+              $set: { bookStatus: "rent", isAvailable: false },
+              $inc: { numberOfTimesRent: 1 },
+            }
+          );
+        } else {
+          await Book.updateOne(
+            { _id: item.product },
+            { $set: { bookStatus: "sell", isAvailable: false } }
+          );
+        }
       })
     );
     const orderUpdate = await Order.findByIdAndUpdate(
@@ -666,14 +688,21 @@ export const updateOrderStatus = async (req, res) => {
   const { deliveryStatus } = req.body;
   console.log(deliveryStatus);
   try {
+    // const updatedOrderReturnDate
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
-      { deliveryStatus, isDelivered: true },
+      {
+        deliveryStatus,
+        isDelivered: true,
+        deliveredAt: deliveryStatus === "Delivered" ? new Date() : null,
+      },
       { new: true }
     );
-    // console.log(updatedOrder);
+
+    console.log(updatedOrder);
 
     if (!updatedOrder) {
+      console.log("s");
       return res
         .status(404)
         .json({ message: "Order not found", success: false });
@@ -685,6 +714,7 @@ export const updateOrderStatus = async (req, res) => {
       success: true,
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ message: "Update failed", success: false });
   }
 };

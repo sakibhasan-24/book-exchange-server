@@ -1,5 +1,7 @@
 import bcryptjs from "bcryptjs";
 import User from "../model/user.model.js";
+import Order from "../model/order.model.js";
+import Book from "../model/books.model.js";
 
 export const userUpdate = async (req, res) => {
   //   console.log(req.user.id, req.params);
@@ -145,6 +147,7 @@ export const getAllDeliveryMan = async (req, res) => {
   }
 };
 
+// not used
 export const userApply = async (req, res) => {
   const { userId } = req.params;
   const {
@@ -229,5 +232,97 @@ export const rejectedRequest = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Something went wrong", error: error });
+  }
+};
+
+// system summary
+
+export const getSystemSummary = async (req, res) => {
+  if (req.user.isAdmin === false) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const now = new Date();
+
+    // Calculate dates for current month and last month
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // Fetch total data (all-time)
+    const totalOrders = await Order.countDocuments({});
+    const totalUsers = await User.countDocuments({});
+    const totalBooks = await Book.countDocuments({});
+
+    const currentMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: startOfCurrentMonth },
+    });
+    const currentMonthUsers = await User.countDocuments({
+      createdAt: { $gte: startOfCurrentMonth },
+    });
+    const currentMonthBooks = await Book.countDocuments({
+      createdAt: { $gte: startOfCurrentMonth },
+    });
+
+    // Fetch last month's data (start of last month to start of current month)
+    const lastMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: startOfLastMonth, $lt: startOfCurrentMonth },
+    });
+    const lastMonthUsers = await User.countDocuments({
+      createdAt: { $gte: startOfLastMonth, $lt: startOfCurrentMonth },
+    });
+    const lastMonthBooks = await Book.countDocuments({
+      createdAt: { $gte: startOfLastMonth, $lt: startOfCurrentMonth },
+    });
+
+    const admin = await User.findOne({ isAdmin: true });
+    const adminProfit = admin?.profits || 0;
+
+    const calculateChange = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return (((current - previous) / previous) * 100).toFixed(2);
+    };
+
+    const orderChange = parseFloat(
+      calculateChange(currentMonthOrders, lastMonthOrders)
+    );
+    const userChange = parseFloat(
+      calculateChange(currentMonthUsers, lastMonthUsers)
+    );
+    const bookChange = parseFloat(
+      calculateChange(currentMonthBooks, lastMonthBooks)
+    );
+
+    const users = await User.find();
+    const deliveryMen = await User.find({ isDeliveryPerson: true });
+    const blockedUsers = users.filter((us) => us.isRedAlert);
+
+    const totalExpenses = admin?.expense || 0;
+    const totalEarnings = admin?.totalEarnings || 0;
+    return res.status(200).json({
+      totalOrders,
+      currentMonthOrders,
+      lastMonthOrders,
+      orderChange,
+
+      totalUsers,
+      currentMonthUsers,
+      lastMonthUsers,
+      userChange,
+
+      totalBooks,
+      currentMonthBooks,
+      lastMonthBooks,
+      bookChange,
+
+      adminProfit, // Total profit from admin
+      totalUsers: users.length, // Renamed to avoid duplication
+      totalDeliveryMen: deliveryMen.length,
+      blockedUserCount: blockedUsers.length,
+      totalExpenses,
+      totalEarnings,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
